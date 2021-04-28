@@ -18,9 +18,9 @@ try { stagingContracts = require('../../contracts.staging.json') } catch (e) { }
 try { prodContracts = require('../../contracts.production.json') } catch (e) { }
 try { commonConfig = require('../../config.common.json') } catch (e) { }
 
-const isPkg = typeof process.pkg !== 'undefined'
-const mainPath = isPkg ? commonConfig.MAIN_PATH : null
-const homedir = mainPath || require('os').homedir()
+// const isPkg = typeof process.pkg !== 'undefined'
+// const mainPath = commonConfig.IS_HOLON ? commonConfig.MAIN_PATH : null
+const homedir = commonConfig.IS_HOLON ? commonConfig.MAIN_PATH : require('os').homedir()
 const desktopEnvPath = path.join(homedir, '.zt', 'env.json')
 
 const getEnvValue = () => {
@@ -35,13 +35,11 @@ const getEnvValue = () => {
 let currentEnv = getEnvValue().MODE
 
 let MODE = currentEnv || process.env.REACT_APP_MODE || process.env.NODE_ENV;
-
 const envConfig = !MODE || MODE === "development" ? localConfig : MODE === "staging" ? stagingConfig : MODE === "production" ? prodConfig : MODE === "private" ? privateConfig : private2Config
 if (!MODE) {
   MODE = envConfig.MODE || 'development'
 }
 const contracts = MODE === "development" ? {} : MODE === "staging" ? stagingContracts : MODE === "production" ? prodContracts : {}
-
 module.exports = {
   SHOULD_VALIDATE: envConfig.SHOULD_VALIDATE !== false,
   HTTP_PROVIDER: envConfig.HTTP_PROVIDER || 'http://localhost:8545',
@@ -52,6 +50,6 @@ module.exports = {
   ...contracts,
   ...envConfig,
   ...commonConfig,
-  MAIN_PATH: mainPath,
+  MAIN_PATH: homedir,
   GAS_LIMIT: envConfig.GAS_LIMIT || 300000
 }
