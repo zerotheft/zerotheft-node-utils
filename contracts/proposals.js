@@ -1,26 +1,37 @@
 const fs = require('fs')
 const dir = require('path')
-const axios = require('axios');
+const PromisePool = require('@supercharge/promise-pool')
 const splitFile = require('split-file');
 const yaml = require('js-yaml')
-const { mean, get } = require('lodash');
-const { MAIN_PATH, GIT_TOKEN } = require('../config')
-const { convertStringDollarToNumeric } = require('../utils/helpers')
-const homedir = MAIN_PATH || require('os').homedir()
-const { getProposalContract, getVoterContract } = require('../utils/contract')
+const { mean, get, isEmpty } = require('lodash');
 const { getUser } = require('./users')
-const { getProposalTemplate: getProposalTemplateFromGithub } = require('../utils/github')
+const { MAIN_PATH, APP_PATH } = require('../config')
 const { convertStringToHash } = require('../utils/web3')
-const proposalsDirName = dir.join(homedir, '/proposals')
-if (!fs.existsSync(proposalsDirName)) {
-  fs.mkdirSync(proposalsDirName);
+const { convertStringDollarToNumeric } = require('../utils/helpers')
+const { getProposalContract, getVoterContract } = require('../utils/contract')
+const { getProposalTemplate: getProposalTemplateFromGithub } = require('../utils/github')
+
+const homedir = MAIN_PATH || require('os').homedir()
+const proposalExportsDir = `${APP_PATH}/public/exports/proposals`
+const tmpPropDir = dir.join(homedir, '/tmp')
+if (!fs.existsSync(tmpPropDir)) {
+  fs.mkdirSync(tmpPropDir, { recursive: true });
 }
+/**
+ * Scan blockchain and return array of proposal blocks
+ * @param {Object} proposalContract 
+ * @param {string} yamlBlockHash 
+ * @param {integer} index 
+ * @param {Array} allOutputs 
+ * @param {String} initialHash 
+ * @param {integer} finalIndex 
+ * @returns Array of all chunks
+ */
 const fetchProposalYaml = async (proposalContract, yamlBlockHash, index, allOutputs = [], initialHash, finalIndex) => {
 
   const yamlBlock = await proposalContract.callSmartContractGetFunc('getProposalYaml', [yamlBlockHash], 900000)
   const initHash = initialHash || yamlBlockHash
-  const outpuFileName = `${proposalsDirName}/${initHash}-${index}`;
-  // fs.writeFileSync(`${proposalsDirName}/output-${index}`, JSON.stringify(configs), 'utf-8');
+  const outpuFileName = `${tmpPropDir}/${initHash}-${index}`;
   fs.writeFileSync(outpuFileName, yamlBlock.content, 'utf-8');
   allOutputs.push(outpuFileName)
   if (!yamlBlock.lastBlock && !finalIndex) {
@@ -63,11 +74,12 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
     voterContract = getVoterContract()
   }
   const proposal = await proposalContract.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
-  const filePath = `${proposalsDirName}/main-${proposal.yamlBlock}.yaml`
+  const filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
 
   if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
-    outputFiles = await fetchProposalYaml(proposalContract, proposal.yamlBlock, 1)
+    let outputFiles = await fetchProposalYaml(proposalContract, proposal.yamlBlock, 1)
     await splitFile.mergeFiles(outputFiles, filePath)
+    // outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
   }
 
   const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(proposalId)])
@@ -92,6 +104,9 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   const feedbacks = await proposalFeedback(proposalId, proposalContract)
   const ratings = get(feedbacks, 'ratingData', 0)
   const complaints = get(feedbacks, 'complaintData', 0)
+  // if (fs.existsSync(filePath))
+  //   fs.unlinkSync(filePath)
+
   return {
     id: proposalId,
     name: proposal.name,
@@ -239,52 +254,97 @@ const userFeedback = async (proposalID, userAddress, proposalContract = null) =>
   }
 }
 
+/**
+ * Returns proposal details by path and year
+ * @param {string} path 
+ * @param {integer} year 
+ * @param {Object} contract 
+ * @param {Object} voterContract 
+ * @returns proposal JSONs
+ */
 const getPathProposalsByYear = async (path, year, contract, voterContract) => {
   const pathHash = convertStringToHash(path)
   const proposalC = contract || getProposalContract()
   const voterC = voterContract || getVoterContract()
-  await voterC.init()
+
   const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
-
-  const proposalIds = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
-  return Promise.all(proposalIds.map(async id => {
-    try {
-      let proposal = await getOrSaveCachedProposal(id, cachedProposalsByPaths, proposalC, file)
-      const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(id)])
-      const feedbacks = await proposalFeedback(id, proposalC)
-
-      const ratings = get(feedbacks, 'ratingData', 0)
-      const complaints = get(feedbacks, 'complaintData', 0)
-      return {
-        ...proposal,
-        votes: voterRes.totalVotes.length,
-        ratings,
-        complaints
-      }
-    } catch (e) {
-      console.log('exception occured', id)
-      return null;
-    }
-  }))
-}
-
-const getOrSaveCachedProposal = async (proposalId, cachedProposalsByPaths, proposalC, cacheFile) => {
-  let proposal = cachedProposalsByPaths[proposalId]
-  if (proposal) return proposal
-
-  proposal = await proposalC.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
-  const filePath = `${proposalsDirName}/main-${proposal.yamlBlock}.yaml`
-
-  if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
-    outputFiles = await fetchProposalYaml(proposalC, proposal.yamlBlock, 1)
-    await splitFile.mergeFiles(outputFiles, filePath)
+  //get cachedproposal
+  let cachedFiles = [], newProposals = {}
+  if (fs.existsSync(`${proposalExportsDir}/${path}/${year}`)) {
+    cachedFiles = fs.readdirSync(`${proposalExportsDir}/${path}/${year}`);
   }
 
-  let file, error, summary = '', amount = 0
+  const proposalIds = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
+  let { results, errors } = await PromisePool
+    .withConcurrency(10)
+    .for(proposalIds)
+    .process(async pid => {
+      try {
+        let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path, year)
+        const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(pid)])
+        const feedbacks = await proposalFeedback(pid, proposalC)
+
+        const ratings = get(feedbacks, 'ratingData', 0)
+        const complaints = get(feedbacks, 'complaintData', 0)
+        if (!pData.fromCache) {
+          newProposals[pid] = pData.proposal
+        }
+        return {
+          ...pData.proposal,
+          votes: voterRes.totalVotes.length,
+          ratings,
+          complaints
+        }
+      } catch (e) {
+        console.log(e)
+        console.log('exception occured', pid)
+        return null;
+      }
+    })
+  // append new proposals in cache file
+  if (!isEmpty(newProposals))
+    fs.writeFileSync(file, JSON.stringify({ ...cachedProposalsByPaths, ...newProposals }))
+
+  return results
+}
+
+/**
+ * Returns proposal data either from cache or from blockchain
+ * @param {integer} proposalId 
+ * @param {Object} cachedProposalsByPaths 
+ * @param {Object} proposalC 
+ * @param {String} cacheFile 
+ * @returns Proposal's object
+ */
+const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path, year) => {
+  let file, summary = '', amount = 0, filePath
+
+  let proposal = cachedProposalsByPaths[proposalId]
+  if (proposal) return { proposal, fromCache: true }
+  proposal = await proposalC.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
+
+  //check if proposal Yaml is in cache
+  if (cachedYamls.length > 0) {
+    let regex = new RegExp("^" + proposalId + "_proposal");
+    let cacheYaml = cachedYamls.filter(value => regex.test(value))
+    if (cacheYaml.length > 0) {
+      filePath = `${proposalExportsDir}/${path}/${year}/${cacheYaml[0]}`
+    }
+  }
+
+  if (!filePath) { // if not found in cache then search blockchain
+    filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
+    if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
+      let outputFiles = await fetchProposalYaml(proposalC, proposal.yamlBlock, 1)
+      await splitFile.mergeFiles(outputFiles, filePath)
+      outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
+    }
+  }
+
   try {
     file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
   } catch (e) {
-    error = true
+    console.log('getProposalData:', e.message)
   }
 
   if (file) {
@@ -292,36 +352,31 @@ const getOrSaveCachedProposal = async (proposalId, cachedProposalsByPaths, propo
     amount = convertStringDollarToNumeric(summary)
   }
   amount = isNaN(amount) ? 0 : amount
-
-  let newProposal = {
-    id: proposalId,
-    name: proposal.name,
-    theftAmt: amount || proposal.theftAmt,
-    year: proposal.year,
-    date: new Date(proposal.date * 1000),
-    summary_year: file ? file.summary_year || file.Summary_Year : proposal.year,
-    summary: summary || proposal.name || '$0',
-    author: file.author,
-    title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
-    description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
-    amount: amount
+  if (fs.existsSync(filePath))
+    fs.unlinkSync(filePath)
+  return {
+    proposal: {
+      id: proposalId,
+      name: proposal.name,
+      theftAmt: proposal.theftAmt,
+      year: proposal.year,
+      date: new Date(proposal.date * 1000),
+      summary_year: file ? file.summary_year || file.Summary_Year : proposal.year,
+      summary: summary || proposal.name || '$0',
+      author: file.author,
+      title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
+      description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
+      amount
+    }, fromCache: false
   }
-
-  if (!error) {
-    const data = JSON.stringify({ ...cachedProposalsByPaths, [proposalId]: newProposal })
-    fs.writeFileSync(cacheFile, data)
-  }
-
-  return newProposal
 }
 
 const getCachedProposalsByPathsDir = path => {
-  const cachedProposalsByPathsDir = dir.join(proposalsDirName, 'proposals-by-paths')
+  const cachedProposalsByPathsDir = dir.join(homedir, '.cache', 'proposals_by_paths')
   const cachedProposalsByPaths = dir.join(cachedProposalsByPathsDir, path)
-
   try {
     if (!fs.existsSync(cachedProposalsByPathsDir)) {
-      fs.mkdirSync(cachedProposalsByPathsDir);
+      fs.mkdirSync(cachedProposalsByPathsDir, { recursive: true });
     }
 
     let rawdata = fs.readFileSync(cachedProposalsByPaths)
@@ -339,7 +394,6 @@ module.exports = {
   proposalsFromEvents,
   voteByHolon,
   fetchProposalYaml,
-  proposalsDirName,
   getProposalTemplate,
   proposalRating,
   proposalFeedback,

@@ -111,7 +111,7 @@ const initiateWeb3 = (provider, accType = 'regular') => {
 }
 
 const instantiateContract = async (web3, contractName) => {
-  if (MODE === 'development' || MODE === 'private' || MODE === 'private2') {
+  if (MODE === 'development' || MODE === 'private') {
     let contract = {}
     if (MODE === 'development')
       contract = JSON.parse(fs.readFileSync(`${config.ZERO_THEFT_CONTRACT}/${contractName}.json`))
@@ -122,12 +122,12 @@ const instantiateContract = async (web3, contractName) => {
     return [new web3.eth.Contract(contract.abi, deployedNetwork && deployedNetwork.address), deployedNetwork.address]
   } else {
     const { address, implementation } = config[contractName]
-    let res = {}
-    if (config.network === "kotti" || config.network === "mainnet") {
-      res = await fetch(`https://blockscout.com/etc/${config.network}/api?module=contract&action=getabi&address=${implementation}`)
-    } else {
-      res = await fetch(`https://api${config.network ? '-' + config.network : ''}.etherscan.io/api?module=contract&action=getabi&address=${implementation}&apikey=${config.ETHERSCAN_API_KEY}`)
-    }
+    // let res = {}
+    let res = await fetch(`https://blockscout.com/etc/${config.network}/api?module=contract&action=getabi&address=${implementation}`)
+    // if (config.network === "kotti" || config.network === "mainnet") {
+    // } else {
+    //   res = await fetch(`https://api${config.network ? '-' + config.network : ''}.etherscan.io/api?module=contract&action=getabi&address=${implementation}&apikey=${config.ETHERSCAN_API_KEY}`)
+    // }
     return [new web3.eth.Contract(JSON.parse(res.result), address), address]
   }
 }

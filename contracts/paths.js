@@ -12,7 +12,7 @@ const homedir = MAIN_PATH || require('os').homedir()
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
 if (!fs.existsSync(pathYamlDir)) {
-  fs.mkdirSync(pathYamlDir);
+  fs.mkdirSync(pathYamlDir, { recursive: true });
 }
 
 const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) => {
@@ -54,18 +54,16 @@ const allNations = async () => {
 
 const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
   Object.keys(path).map((key) => {
-
-    if (key === 'Alias') return
+    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name'].includes(key)) return
     Object.keys(path).forEach((item) => {
       if (paths.indexOf(item) > 0)
         paths.length = paths.indexOf(item)
     })
     paths.push(key)
-
     if (key === "0" || typeof (path) == "string") {
       return
     }
-    else if (path[key] && path.hasOwnProperty(key)) {
+    else if (path[key] && path.hasOwnProperty(key) && !path[key].leaf) {
       if (typeof (path[key]) !== 'string')
         makePathCrumbs(path[key], allPaths, paths)
     } else {
@@ -104,9 +102,9 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
     }
 
     const proposalIds = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
-
+    if (proposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
     let { results: pathDetails, errors } = await PromisePool
-      .withConcurrency(5)
+      .withConcurrency(10)
       .for(proposalIds)
       .process(async id => {
         let proposal
@@ -114,7 +112,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
           proposal = await getProposalDetails(id, proposalContract, voterContract)
         }
         catch (e) {
-          console.log('getPathDetail Error::', id)
+          console.log('getPathDetail Error::', id, e)
           return null
         }
 
@@ -124,7 +122,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
         }
 
         let { results: voteInfo, errors } = await PromisePool
-          .withConcurrency(5)
+          .withConcurrency(10)
           .for(proposal.votes)
           .process(async vid => {
             try {

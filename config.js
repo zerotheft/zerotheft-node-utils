@@ -20,8 +20,10 @@ try { commonConfig = require('../../config.common.json') } catch (e) { }
 
 // const isPkg = typeof process.pkg !== 'undefined'
 // const mainPath = commonConfig.IS_HOLON ? commonConfig.MAIN_PATH : null
-const homedir = commonConfig.IS_HOLON ? commonConfig.MAIN_PATH : require('os').homedir()
-const desktopEnvPath = path.join(homedir, '.zt', 'env.json')
+const homedir = require('os').homedir()
+const maindir = commonConfig.IS_HOLON ? path.join(homedir, commonConfig.HOLON_INSTALL_DIR) : homedir
+
+const desktopEnvPath = path.join(maindir, '.zt', 'env.json')
 
 const getEnvValue = () => {
   try {
@@ -35,7 +37,7 @@ const getEnvValue = () => {
 let currentEnv = getEnvValue().MODE
 
 let MODE = currentEnv || process.env.REACT_APP_MODE || process.env.NODE_ENV;
-const envConfig = !MODE || MODE === "development" ? localConfig : MODE === "staging" ? stagingConfig : MODE === "production" ? prodConfig : MODE === "private" ? privateConfig : private2Config
+const envConfig = !MODE || MODE === "development" ? localConfig : MODE === "staging" ? stagingConfig : MODE === "production" ? prodConfig : privateConfig
 if (!MODE) {
   MODE = envConfig.MODE || 'development'
 }
@@ -50,6 +52,6 @@ module.exports = {
   ...contracts,
   ...envConfig,
   ...commonConfig,
-  MAIN_PATH: homedir,
+  MAIN_PATH: maindir,
   GAS_LIMIT: envConfig.GAS_LIMIT || 300000
 }

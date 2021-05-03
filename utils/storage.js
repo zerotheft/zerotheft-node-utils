@@ -1,9 +1,8 @@
 const fs = require('fs')
 const Web3 = require('web3')
-const { MAIN_PATH, HTTP_PROVIDER, ADDRESS_ENCRYPT_KEY } = require('../config');
+const { MAIN_PATH, HTTP_PROVIDER, ADDRESS_ENCRYPT_KEY, IS_HOLON } = require('../config');
 const homedir = MAIN_PATH || require('os').homedir()
 const path = require('path')
-const crypto = require('crypto');
 const desktopEnvPath = path.join(homedir, '.zt', 'env.json')
 const credentialPathName = path.join(homedir, '.zt', 'credential.json')
 const appPathName = path.join(homedir, '.zt', 'app.json')
@@ -25,7 +24,7 @@ const getEnvValue = () => {
 const ENV_MODE = getEnvValue().MODE
 const MODE = ENV_MODE || process.env.REACT_APP_MODE || process.env.NODE_ENV
 
-const net = MODE === 'production' ? 'mainnet' : MODE === 'development' ? 'devnet' : MODE === 'staging' ? 'testnet' : MODE === 'private' ? 'privatenet' : 'privatenet2'
+const net = MODE === 'production' ? 'mainnet' : MODE === 'development' ? 'devnet' : MODE === 'staging' ? 'testnet' : 'privatenet'
 const pathName = path.join(homedir, '.zt', net, 'eth.json')
 const proxyData = path.join(homedir, '.zt', net, 'proxyData.json')
 const historyPathName = path.join(homedir, '.zt', net, 'history.json')
@@ -37,7 +36,6 @@ const devnetDir = path.join(homedir, '.zt', 'devnet')
 const mainnetDir = path.join(homedir, '.zt', 'mainnet')
 const testnetDir = path.join(homedir, '.zt', 'testnet')
 const privatenetDir = path.join(homedir, '.zt', 'privatenet')
-const privatenet2Dir = path.join(homedir, '.zt', 'privatenet2')
 
 const getStorageValues = (type = 'regular', decrypt = true) => {
   try {
@@ -71,11 +69,12 @@ const getStorageValues = (type = 'regular', decrypt = true) => {
 const createFolders = () => {
   const createFolder = name => !fs.existsSync(name) && fs.mkdirSync(name)
   createFolder(dir)
-  createFolder(devnetDir)
-  createFolder(mainnetDir)
-  createFolder(testnetDir)
-  createFolder(privatenetDir)
-  createFolder(privatenet2Dir)
+  if (!IS_HOLON) {
+    createFolder(devnetDir)
+    createFolder(mainnetDir)
+    createFolder(testnetDir)
+    createFolder(privatenetDir)
+  }
 }
 
 const getValues = (curPath, type = 'object') => {
