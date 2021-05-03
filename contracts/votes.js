@@ -10,14 +10,16 @@ const userPriorVote = async body => {
   const voterC = getVoterContract()
   const proposalC = getProposalContract()
   try {
+    if (!body.address) throw new Error('user address not present for prior vote')
     let priorvoteID = await voterC.callSmartContractGetFunc('getUserSpecificVote', [body.address, body.year, convertStringToHash(body.url)])
+    if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVotes', [parseInt(priorvoteID)])
     const proposal = await getProposalDetails(vote.proposalID, proposalC, voterC)
 
     return { success: true, id: priorvoteID, theftAmt: proposal.theftAmt, ...vote }
   }
   catch (e) {
-    console.log('user prior vote', e)
+    console.log('user prior vote', e.message)
     return { success: false, error: e.message }
 
   }

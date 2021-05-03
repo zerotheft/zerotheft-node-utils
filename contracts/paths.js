@@ -6,9 +6,9 @@ const yaml = require('js-yaml')
 const { getPathContract, getProposalContract, getVoterContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { getUser } = require('./users')
-const { MAIN_PATH } = require('../config')
+const { APP_PATH } = require('../config')
 const { getProposalDetails } = require('./proposals')
-const homedir = MAIN_PATH || require('os').homedir()
+const homedir = APP_PATH || require('os').homedir()
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
 if (!fs.existsSync(pathYamlDir)) {

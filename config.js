@@ -52,6 +52,6 @@ module.exports = {
   ...contracts,
   ...envConfig,
   ...commonConfig,
-  MAIN_PATH: maindir,
+  APP_PATH: maindir,
   GAS_LIMIT: envConfig.GAS_LIMIT || 300000
 }
