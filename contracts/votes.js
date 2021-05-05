@@ -19,7 +19,7 @@ const userPriorVote = async body => {
     return { success: true, id: priorvoteID, theftAmt: proposal.theftAmt, ...vote }
   }
   catch (e) {
-    console.log('user prior vote', e.message)
+    console.log('userPriorVote::', e.message)
     return { success: false, error: e.message }
 
   }

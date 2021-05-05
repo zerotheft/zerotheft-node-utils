@@ -6,13 +6,13 @@ const yaml = require('js-yaml')
 const { getPathContract, getProposalContract, getVoterContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { getUser } = require('./users')
-const { APP_PATH } = require('../config')
+const { MAIN_PATH } = require('../config')
 const { getProposalDetails } = require('./proposals')
-const homedir = APP_PATH || require('os').homedir()
+const homedir = MAIN_PATH || require('os').homedir()
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
 if (!fs.existsSync(pathYamlDir)) {
-  fs.mkdirSync(pathYamlDir, { recursive: true });
+  fs.mkdirSync(pathYamlDir);
 }
 
 const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) => {
@@ -142,7 +142,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
               }
             }
             catch (e) {
-              console.log('getPathDetail(getVotes) Error::', e)
+              console.log('getPathDetail(getVotes)', e)
               return null
             }
           })
