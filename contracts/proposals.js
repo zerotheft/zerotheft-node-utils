@@ -5,17 +5,17 @@ const splitFile = require('split-file');
 const yaml = require('js-yaml')
 const { mean, get, isEmpty } = require('lodash');
 const { getUser } = require('./users')
-const { MAIN_PATH, APP_PATH } = require('../config')
+const { APP_PATH } = require('../config')
 const { convertStringToHash } = require('../utils/web3')
 const { convertStringDollarToNumeric } = require('../utils/helpers')
 const { getProposalContract, getVoterContract } = require('../utils/contract')
 const { getProposalTemplate: getProposalTemplateFromGithub } = require('../utils/github')
 
-const homedir = MAIN_PATH || require('os').homedir()
+const homedir = APP_PATH || require('os').homedir()
 const proposalExportsDir = `${APP_PATH}/public/exports/proposals`
 const tmpPropDir = dir.join(homedir, '/tmp')
 if (!fs.existsSync(tmpPropDir)) {
-  fs.mkdirSync(tmpPropDir);
+  fs.mkdirSync(tmpPropDir, { recursive: true });
 }
 /**
  * Scan blockchain and return array of proposal blocks
