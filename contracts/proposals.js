@@ -15,7 +15,7 @@ const homedir = MAIN_PATH || require('os').homedir()
 const proposalExportsDir = `${APP_PATH}/public/exports/proposals`
 const tmpPropDir = dir.join(homedir, '/tmp')
 if (!fs.existsSync(tmpPropDir)) {
-  fs.mkdirSync(tmpPropDir);
+  fs.mkdirSync(tmpPropDir, { recursive: true });
 }
 /**
  * Scan blockchain and return array of proposal blocks
