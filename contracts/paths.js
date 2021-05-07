@@ -91,7 +91,7 @@ const pathsByNation = async (nation = 'USA') => {
 /*
 * Return all the information of path including proposals and votes
 */
-const getPathDetail = async (path, proposalContract = null, voterContract = null, withInfo, year) => {
+const getPathDetail = async (path, year, proposalContract = null, voterContract = null, withInfo) => {
   let allVotesInfo = []
   try {
     if (!proposalContract) {
@@ -100,7 +100,6 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
     if (!voterContract) {
       voterContract = getVoterContract()
     }
-
     const proposalIds = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
     if (proposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
     let { results: pathDetails, errors } = await PromisePool
