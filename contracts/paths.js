@@ -12,7 +12,7 @@ const homedir = MAIN_PATH || require('os').homedir()
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
 if (!fs.existsSync(pathYamlDir)) {
-  fs.mkdirSync(pathYamlDir);
+  fs.mkdirSync(pathYamlDir, { recursive: true });
 }
 
 const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) => {
