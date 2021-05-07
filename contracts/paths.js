@@ -36,7 +36,7 @@ const allNations = async () => {
     //fetch path yaml chunks based on nation hash
     const path = await contract.callSmartContractGetFunc('getPath', [hash])
     const pathDir = `${pathYamlDir}/${path.nation}-hierarchy-v${path.version}.yaml`;
-    if (Object.keys(path).length > 0) {
+    if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
       outputFiles = await fetchPathYaml(contract, path.yamlBlock, 1)
       await splitFile.mergeFiles(outputFiles, pathDir)
     }
