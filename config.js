@@ -19,9 +19,11 @@ try { prodContracts = require('../../contracts.production.json') } catch (e) { }
 try { commonConfig = require('../../config.common.json') } catch (e) { }
 
 // const isPkg = typeof process.pkg !== 'undefined'
-// const mainPath = commonConfig.IS_HOLON ? commonConfig.MAIN_PATH : null
-const homedir = commonConfig.IS_HOLON ? commonConfig.MAIN_PATH : require('os').homedir()
-const desktopEnvPath = path.join(homedir, '.zt', 'env.json')
+// const mainPath = commonConfig.IS_INSTALLER ? commonConfig.MAIN_PATH : null
+const homedir = require('os').homedir()
+const maindir = commonConfig.IS_INSTALLER ? path.join(homedir, commonConfig.HOLON_INSTALL_DIR) : homedir
+
+const desktopEnvPath = path.join(maindir, '.zt', 'env.json')
 
 const getEnvValue = () => {
   try {
@@ -49,6 +51,6 @@ module.exports = {
   ...contracts,
   ...envConfig,
   ...commonConfig,
-  MAIN_PATH: homedir,
+  APP_PATH: maindir,
   GAS_LIMIT: envConfig.GAS_LIMIT || 300000
 }

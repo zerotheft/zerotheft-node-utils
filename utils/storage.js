@@ -1,7 +1,7 @@
 const fs = require('fs')
 const Web3 = require('web3')
-const { MAIN_PATH, HTTP_PROVIDER, ADDRESS_ENCRYPT_KEY, IS_HOLON } = require('../config');
-const homedir = MAIN_PATH || require('os').homedir()
+const { APP_PATH, HTTP_PROVIDER, ADDRESS_ENCRYPT_KEY } = require('../config');
+const homedir = APP_PATH || require('os').homedir()
 const path = require('path')
 const desktopEnvPath = path.join(homedir, '.zt', 'env.json')
 const credentialPathName = path.join(homedir, '.zt', 'credential.json')
@@ -67,13 +67,12 @@ const getStorageValues = (type = 'regular', decrypt = true) => {
 }
 
 const createFolders = () => {
-  const createFolder = name => !fs.existsSync(name) && fs.mkdirSync(name)
+  const createFolder = name => !fs.existsSync(name) && fs.mkdirSync(name, { recursive: true })
   createFolder(dir)
   createFolder(devnetDir)
   createFolder(mainnetDir)
   createFolder(testnetDir)
   createFolder(privatenetDir)
-
 }
 
 const getValues = (curPath, type = 'object') => {
