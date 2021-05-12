@@ -1,6 +1,6 @@
 const fs = require('fs')
 const Web3 = require('web3')
-const { APP_PATH, HTTP_PROVIDER, ADDRESS_ENCRYPT_KEY, IS_HOLON } = require('../config');
+const { APP_PATH, HTTP_PROVIDER, ADDRESS_ENCRYPT_KEY } = require('../config');
 const homedir = APP_PATH || require('os').homedir()
 const path = require('path')
 const desktopEnvPath = path.join(homedir, '.zt', 'env.json')
