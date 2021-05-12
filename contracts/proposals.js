@@ -276,7 +276,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
 
   const proposalIds = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
   let { results, errors } = await PromisePool
-    .withConcurrency(10)
+    .withConcurrency(1)
     .for(proposalIds)
     .process(async pid => {
       try {
