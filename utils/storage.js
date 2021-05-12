@@ -67,7 +67,7 @@ const getStorageValues = (type = 'regular', decrypt = true) => {
 }
 
 const createFolders = () => {
-  const createFolder = name => !fs.existsSync(name) && fs.mkdirSync(name)
+  const createFolder = name => !fs.existsSync(name) && fs.mkdirSync(name, { recursive: true })
   createFolder(dir)
   createFolder(devnetDir)
   createFolder(mainnetDir)
