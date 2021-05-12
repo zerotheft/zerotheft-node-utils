@@ -20,7 +20,6 @@ class Web3 {
 
   async callSmartContractGetFunc(methodName, args = []) {
     if (!this.web3 || !this.instance) await this.init()
-
     if (SHOULD_VALIDATE) {
       const storage = await ensureAccountLoginAndGetDetails()
       if (!storage) return
