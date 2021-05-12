@@ -48,7 +48,6 @@ module.exports = {
   WEB_PROVIDER: envConfig.WEB_PROVIDER || 'ws://localhost:8545',
   ADDRESS_ENCRYPT_KEY: envConfig.ADDRESS_ENCRYPT_KEY || 'zerotheft123',
   MODE: MODE,
-  GIT_TOKEN: envConfig.GIT_API_TOKEN,
   ...contracts,
   ...envConfig,
   ...commonConfig,

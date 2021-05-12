@@ -5,6 +5,7 @@ const splitFile = require('split-file');
 const yaml = require('js-yaml')
 const { getPathContract, getProposalContract, getVoterContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
+const { updateUmbrellaPaths } = require('../utils/storage');
 const { getUser } = require('./users')
 const { APP_PATH } = require('../config')
 const { getProposalDetails } = require('./proposals')
@@ -80,14 +81,46 @@ const pathsByNation = async (nation = 'USA') => {
   const contract = getPathContract()
   const path = await contract.callSmartContractGetFunc('getPath', [convertStringToHash(nation)])
   const pathDir = `${pathYamlDir}/${path.nation}-hierarchy-v${path.version}.yaml`;
-  if (Object.keys(path).length > 0) {
+  if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
     outputFiles = await fetchPathYaml(contract, path.yamlBlock, 1)
     await splitFile.mergeFiles(outputFiles, pathDir)
   }
   pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
   return pathYamlContent
 }
+/**
+ * Get Umbrella nodes from cache or from blockchain
+ */
+const getUmbrellaPaths = async (nation = 'USA') => {
+  try {
+    const pathData = await pathsByNation(nation)
+    const paths = pathData[nation]
+    let umbrellas = []
+    const traversePath = async (pathNode, path = '') => {
+      for (let enode of Object.keys(pathNode)) {
+        if (['display_name', 'leaf', 'umbrella', 'parent'].includes(enode)) {
+          continue
+        }
+        // console.log('isUmbrella', enode)
+        // console.log('isumb', pathNode[enode]['umbrella'])
+        let newPath = path ? `${path}/${enode}` : enode
+        if (pathNode[enode]['umbrella']) {
+          umbrellas.push(newPath)
+        }
+        // console.log('next', pathNode[enode], newPath)
 
+        traversePath(pathNode[enode], newPath)
+      }
+      return umbrellas
+    }
+    traversePath(paths)
+
+    updateUmbrellaPaths({ paths: umbrellas })
+    return umbrellas
+  } catch (e) {
+    throw new Error(`getUmbrellaPaths:: ${e.message}`)
+  }
+}
 /*
 * Return all the information of path including proposals and votes
 */
@@ -164,5 +197,5 @@ module.exports = {
   allNations,
   getPathDetail,
   pathsByNation,
-
+  getUmbrellaPaths
 }

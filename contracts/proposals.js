@@ -9,7 +9,7 @@ const { APP_PATH } = require('../config')
 const { convertStringToHash } = require('../utils/web3')
 const { convertStringDollarToNumeric } = require('../utils/helpers')
 const { getProposalContract, getVoterContract } = require('../utils/contract')
-const { getProposalTemplate: getProposalTemplateFromGithub } = require('../utils/github')
+const { getGithubTemplate } = require('../utils/github')
 
 const homedir = APP_PATH || require('os').homedir()
 const proposalExportsDir = `${APP_PATH}/public/exports/proposals`
@@ -182,7 +182,7 @@ const voteByHolon = async body => {
 * Fetch proposal template based on path and return yaml content
 */
 const getProposalTemplate = path => {
-  return getProposalTemplateFromGithub(path)
+  return getGithubTemplate(path)
 }
 /* get rating of proposal */
 const proposalRating = async (proposalContract, proposalID) => {
@@ -322,7 +322,6 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
   let proposal = cachedProposalsByPaths[proposalId]
   if (proposal) return { proposal, fromCache: true }
   proposal = await proposalC.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
-
   //check if proposal Yaml is in cache
   if (cachedYamls.length > 0) {
     let regex = new RegExp("^" + proposalId + "_proposal");
