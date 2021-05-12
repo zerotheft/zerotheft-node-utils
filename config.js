@@ -19,9 +19,9 @@ try { prodContracts = require('../../contracts.production.json') } catch (e) { }
 try { commonConfig = require('../../config.common.json') } catch (e) { }
 
 // const isPkg = typeof process.pkg !== 'undefined'
-// const mainPath = commonConfig.IS_HOLON ? commonConfig.MAIN_PATH : null
+// const mainPath = commonConfig.IS_INSTALLER ? commonConfig.MAIN_PATH : null
 const homedir = require('os').homedir()
-const maindir = commonConfig.IS_HOLON ? path.join(homedir, commonConfig.HOLON_INSTALL_DIR) : homedir
+const maindir = commonConfig.IS_INSTALLER ? path.join(homedir, commonConfig.HOLON_INSTALL_DIR) : homedir
 
 const desktopEnvPath = path.join(maindir, '.zt', 'env.json')
 
