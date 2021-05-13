@@ -1,3 +1,4 @@
+const homedir = require('os').homedir()
 const path = require('path')
 const fs = require('fs')
 
@@ -20,8 +21,8 @@ try { commonConfig = require('../../config.common.json') } catch (e) { }
 
 // const isPkg = typeof process.pkg !== 'undefined'
 // const mainPath = commonConfig.IS_INSTALLER ? commonConfig.MAIN_PATH : null
-const homedir = require('os').homedir()
-const maindir = commonConfig.IS_INSTALLER ? path.join(homedir, commonConfig.HOLON_INSTALL_DIR) : homedir
+// const maindir = commonConfig.IS_INSTALLER ? path.join(homedir, commonConfig.ZEROTHEFT_DIR) : homedir
+const maindir = path.join(homedir, commonConfig.ZEROTHEFT_DIR)
 
 const desktopEnvPath = path.join(maindir, '.zt', 'env.json')
 
@@ -41,6 +42,7 @@ const envConfig = !MODE || MODE === "development" ? localConfig : MODE === "stag
 if (!MODE) {
   MODE = envConfig.MODE || 'development'
 }
+
 const contracts = MODE === "development" ? {} : MODE === "staging" ? stagingContracts : MODE === "production" ? prodContracts : {}
 module.exports = {
   SHOULD_VALIDATE: envConfig.SHOULD_VALIDATE !== false,
