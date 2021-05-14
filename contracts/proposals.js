@@ -362,7 +362,7 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
       date: new Date(proposal.date * 1000),
       summary_year: file ? file.summary_year || file.Summary_Year : proposal.year,
       summary: summary || proposal.name || '$0',
-      author: file.author,
+      author: file && file.author,
       title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
       description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
       amount
