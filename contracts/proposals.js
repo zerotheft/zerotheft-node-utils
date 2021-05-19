@@ -12,7 +12,7 @@ const { getProposalContract, getVoterContract } = require('../utils/contract')
 const { getGithubTemplate } = require('../utils/github')
 
 const homedir = APP_PATH || require('os').homedir()
-const proposalExportsDir = `${APP_PATH}/public/exports/proposals`
+const nationExportsDir = `${APP_PATH}/public/exports/nation_data`
 const tmpPropDir = dir.join(homedir, '/tmp')
 if (!fs.existsSync(tmpPropDir)) {
   fs.mkdirSync(tmpPropDir, { recursive: true });
@@ -270,8 +270,9 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
   const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
   //get cachedproposal
   let cachedFiles = [], newProposals = {}
-  if (fs.existsSync(`${proposalExportsDir}/${path}/${year}`)) {
-    cachedFiles = fs.readdirSync(`${proposalExportsDir}/${path}/${year}`);
+  const cachedProposalDir = `${nationExportsDir}/${path}/${year}/proposals`
+  if (fs.existsSync(cachedProposalDir)) {
+    cachedFiles = fs.readdirSync(cachedProposalDir);
   }
 
   const proposalIds = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
@@ -327,7 +328,7 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
     let regex = new RegExp("^" + proposalId + "_proposal");
     let cacheYaml = cachedYamls.filter(value => regex.test(value))
     if (cacheYaml.length > 0) {
-      filePath = `${proposalExportsDir}/${path}/${year}/${cacheYaml[0]}`
+      filePath = `${nationExportsDir}/${path}/${year}/${cacheYaml[0]}`
     }
   }
 
