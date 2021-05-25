@@ -78,7 +78,6 @@ const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
 * Return paths based on nation
 */
 const pathsByNation = async (nation = 'USA') => {
-  console.log('Fetching path for  nation ', nation)
   const contract = getPathContract()
   const path = await contract.callSmartContractGetFunc('getPath', [convertStringToHash(nation)])
   const pathDir = `${pathYamlDir}/${path.nation}-hierarchy-v${path.version}.yaml`;

@@ -1,12 +1,12 @@
 const Web3 = require('./Web3Class')
 
-const getPermissionContract = () => getContract('PermissionHandler')
-const getProposalContract = () => getContract('ProposalHandler')
-const getVoterContract = () => getContract('VoteHandler')
-const getUserContract = () => getContract('UserHandler')
-const getPathContract = () => getContract('PathHandler')
-const getHolonContract = () => getContract('HolonHandler')
-const getWalletContract = () => getContract('WalletHandler')
+const getPermissionContract = () => getContract('ZTMPermissions')
+const getProposalContract = () => getContract('ZTMProposals')
+const getVoterContract = () => getContract('ZTMVotes')
+const getUserContract = () => getContract('ZTMUsers')
+const getPathContract = () => getContract('ZTMPaths')
+const getHolonContract = () => getContract('ZTMHolons')
+const getWalletContract = () => getContract('ZTMWallets')
 
 const getContract = contractName => new Web3(contractName)
 
