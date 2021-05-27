@@ -148,6 +148,9 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
           return null
         }
 
+        //get rid of un-necessary  keys
+        ['detail', 'ratings', 'complaints', 'description'].forEach(e => delete proposal[e]);
+
         if (!withInfo) {
           // pathDetails.push(proposal)
           return proposal
