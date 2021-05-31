@@ -372,6 +372,59 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
 }
 
 /**
+ * Returns proposal yaml either from cache or from blockchain
+ * @param {integer} proposalId 
+ * @param {String} pathHash 
+ * @param {String} path 
+ * @param {String} year 
+ * @param {Object} contract 
+ * @returns Proposal's YAML object
+ */
+const getProposalYaml = async (proposalId, pathHash, path, year, contract) => {
+  let yamlJSON, filePath
+
+  const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
+  let proposal = cachedProposalsByPaths[proposalId]
+  if (proposal) return { proposal, fromCache: true }
+
+
+  const proposalC = contract || getProposalContract()
+  proposal = await proposalC.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
+
+  //check if proposal Yaml is in cache
+  let cachedYamls = []
+  const cachedProposalDir = `${nationExportsDir}/${path}/${year}/proposals`
+  if (fs.existsSync(cachedProposalDir)) {
+    cachedYamls = fs.readdirSync(cachedProposalDir);
+  }
+  if (cachedYamls.length > 0) {
+    let regex = new RegExp("^" + proposalId + "_proposal");
+    let cacheYaml = cachedYamls.filter(value => regex.test(value))
+    if (cacheYaml.length > 0) {
+      filePath = `${cachedProposalDir}/${cacheYaml[0]}`
+    }
+  }
+
+  if (!filePath) { // if not found in cache then search blockchain
+    filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
+    if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
+      let outputFiles = await fetchProposalYaml(proposalC, proposal.yamlBlock, 1)
+      await splitFile.mergeFiles(outputFiles, filePath)
+      outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
+    }
+  }
+
+  try {
+    yamlJSON = yaml.load(fs.readFileSync(filePath, 'utf-8'))
+  } catch (e) {
+    console.log('getProposalData:', e.message)
+    yamlJSON = {}
+  }
+
+  return yamlJSON
+}
+
+/**
  * Check if proposals are already in cache and  fetch
  * @param {string} path 
  * @returns json information of cached proposals 
@@ -404,5 +457,6 @@ module.exports = {
   proposalFeedback,
   userFeedback,
   getProposalDetails,
-  getPathProposalsByYear
+  getPathProposalsByYear,
+  getProposalYaml
 }
