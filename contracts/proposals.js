@@ -328,7 +328,7 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
     let regex = new RegExp("^" + proposalId + "_proposal");
     let cacheYaml = cachedYamls.filter(value => regex.test(value))
     if (cacheYaml.length > 0) {
-      filePath = `${nationExportsDir}/${path}/${year}/${cacheYaml[0]}`
+      filePath = `${nationExportsDir}/${path}/${year}/proposals/${cacheYaml[0]}`
     }
   }
 
@@ -371,6 +371,11 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
   }
 }
 
+/**
+ * Check if proposals are already in cache and  fetch
+ * @param {string} path 
+ * @returns json information of cached proposals 
+ */
 const getCachedProposalsByPathsDir = path => {
   const cachedProposalsByPathsDir = dir.join(homedir, '.cache', 'proposals_by_paths')
   const cachedProposalsByPaths = dir.join(cachedProposalsByPathsDir, path)
