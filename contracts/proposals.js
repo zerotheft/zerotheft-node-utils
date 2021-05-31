@@ -366,6 +366,15 @@ const getProposalYaml = async (proposalId, pathHash, path, year, contract) => {
   return await getYamlFromCacheOrSmartContract(proposalId, path, year, contract)
 }
 
+/**
+ * Returns proposal yaml either from cache or from blockchain
+ * @param {integer} proposalId 
+ * @param {String} path 
+ * @param {String} year 
+ * @param {Object} contract 
+ * @param {Object} cachedYamls 
+ * @returns Proposal's YAML object
+ */
 const getYamlFromCacheOrSmartContract = async (proposalId, path, year, contract, cachedYamls) => {
   let yamlJSON, filePath
 
