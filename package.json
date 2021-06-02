@@ -6,10 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@gitlab.com:WhiteHatEngineering/ZeroTheft_and_DebateHQ/zerotheft-node-utils.git"
-  },
   "author": "",
   "license": "ISC",
   "dependencies": {
