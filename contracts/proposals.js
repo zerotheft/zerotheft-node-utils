@@ -175,7 +175,7 @@ const proposalsFromEvents = async (methodName, args = {}) => {
 */
 const voteByHolon = async body => {
   const contract = getProposalContract()
-  return contract.createTransaction('holonVote', [true, parseInt(body.proposalId), (body.amount || '').toString(), body.comment || '', body.voter, body.signedMessage, 0, body.year, body.priorVoteId], undefined, undefined, 'proxy')
+  return contract.createTransaction('holonVote', [true, parseInt(body.proposalId), body.altTheftAmounts, body.comment || '', body.voter, body.signedMessage, 0, body.priorVoteId], undefined, undefined, 'proxy')
 }
 
 /*
@@ -297,8 +297,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
           complaints
         }
       } catch (e) {
-        console.log(e)
-        console.log('exception occured', pid)
+        console.log('getPathProposalsByYear', pid, e)
         return null;
       }
     })
@@ -319,6 +318,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
  */
 const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path, year) => {
   let file, filePath
+  let theftYears = {}
 
   let proposal = cachedProposalsByPaths[proposalId]
   // if (proposal) return { proposal, fromCache: true }
@@ -341,11 +341,12 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
     }
   }
 
-  try {
-    file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
-  } catch (e) {
-    console.log('getProposalData:', e.message)
-  }
+
+  file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
+  proposal.theftAmt && proposal.theftYears.forEach((y) => {
+    if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+  })
+
   let amount = parseInt(proposal.theftAmt)
   if (fs.existsSync(filePath))
     fs.unlinkSync(filePath)
@@ -359,7 +360,8 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
       title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
       description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
       amount,
-      year
+      year,
+      theftYears
     }, fromCache: false
   }
 }
