@@ -318,12 +318,13 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
  * @returns Proposal's object
  */
 const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path, year) => {
-  let file, summary = '', amount = 0, filePath
+  let summary = '', amount = 0, filePath
 
   let proposal = cachedProposalsByPaths[proposalId]
   if (proposal) return { proposal, fromCache: true }
 
-  file = await getYamlFromCacheOrSmartContract(proposalId, path, year, proposalC, cachedYamls)
+  const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(proposalId, path, year, proposalC, cachedYamls)
+  proposal = tmpProposal
 
   if (file) {
     summary = file.summary || file.Summary
@@ -352,18 +353,15 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
 /**
  * Returns proposal yaml either from cache or from blockchain
  * @param {integer} proposalId 
- * @param {String} pathHash 
  * @param {String} path 
  * @param {String} year 
  * @param {Object} contract 
  * @returns Proposal's YAML object
  */
-const getProposalYaml = async (proposalId, pathHash, path, year, contract) => {
-  const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
-  let proposal = cachedProposalsByPaths[proposalId]
-  if (proposal) return { proposal, fromCache: true }
+const getProposalYaml = async (proposalId, path, year, contract) => {
+  const { yamlJSON } = await getYamlFromCacheOrSmartContract(proposalId, path, year, contract)
 
-  return await getYamlFromCacheOrSmartContract(proposalId, path, year, contract)
+  return yamlJSON
 }
 
 /**
@@ -379,7 +377,7 @@ const getYamlFromCacheOrSmartContract = async (proposalId, path, year, contract,
   let yamlJSON, filePath
 
   const proposalC = contract || getProposalContract()
-  proposal = await proposalC.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
+  const proposal = await proposalC.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
 
   //check if proposal Yaml is in cache
   const cachedProposalDir = `${nationExportsDir}/${path}/${year}/proposals`
@@ -412,7 +410,7 @@ const getYamlFromCacheOrSmartContract = async (proposalId, path, year, contract,
     console.log('getProposalData:', e.message)
   }
 
-  return yamlJSON
+  return { proposal, yamlJSON }
 }
 
 /**
