@@ -177,7 +177,7 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
               }
             }
             catch (e) {
-              console.log('getPathDetail(getVotes)', e)
+              console.log('getPathDetail(getVote)', e)
               return null
             }
           })

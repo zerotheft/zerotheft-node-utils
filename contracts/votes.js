@@ -11,9 +11,9 @@ const userPriorVote = async body => {
   const proposalC = getProposalContract()
   try {
     if (!body.address) throw new Error('user address not present for prior vote')
-    let priorvoteID = await voterC.callSmartContractGetFunc('getUserSpecificVote', [body.address, body.year, convertStringToHash(body.url)])
+    let priorvoteID = await voterC.callSmartContractGetFunc('getUserSpecificVote', [body.address, convertStringToHash(body.url)])
     if (priorvoteID <= 0) throw new Error('no prior votes')
-    const vote = await voterC.callSmartContractGetFunc('getVotes', [parseInt(priorvoteID)])
+    const vote = await voterC.callSmartContractGetFunc('getVote', [parseInt(priorvoteID)])
     const proposal = await getProposalDetails(vote.proposalID, proposalC, voterC)
 
     return { success: true, id: priorvoteID, theftAmt: proposal.theftAmt, ...vote }
@@ -62,7 +62,7 @@ const getAllVoteIds = async () => {
       let voteID = allVoteIds[i]
       console.log('voteID about to export is ', voteID)
       try {
-        const vote = await contract.callSmartContractGetFunc('getVotes', [parseInt(voteID)])
+        const vote = await contract.callSmartContractGetFunc('getVote', [parseInt(voteID)])
         const { voter, voteType, proposalID, altTheftAmt, comment, date } = vote
         const voteExtra = await contract.callSmartContractGetFunc('getVoteExtra', [parseInt(voteID)])
         const { holon, isFunded, isArchive } = voteExtra
