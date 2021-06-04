@@ -133,7 +133,7 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
     if (!voterContract) {
       voterContract = getVoterContract()
     }
-    const proposalIds = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
+    const proposalIds = await proposalContract.callSmartContractGetFunc('proposalsByPath', [convertStringToHash(path)])
     if (proposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
     let { results: pathDetails, errors } = await PromisePool
       .withConcurrency(10)
@@ -161,19 +161,18 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
           .for(proposal.votes)
           .process(async vid => {
             try {
-              let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVotes', [parseInt(vid)])
-              let userInfo = await getUser(singleVoterInfo.voter)
+              let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVote', [parseInt(vid)])
+              // let userInfo = await getUser(singleVoterInfo.voter)
               return {
                 voterId: singleVoterInfo.voter,
                 voteId: vid,
-                ...userInfo,
                 voteType: singleVoterInfo.voteType,
-                altTheftAmt: singleVoterInfo.altTheftAmt,
-                comment: singleVoterInfo.comment,
+                altTheftAmt: singleVoterInfo.altTheftAmounts === "" ? {} : JSON.parse(singleVoterInfo.altTheftAmounts),
                 votedDate: new Date(singleVoterInfo.date * 1000),
                 path: path.split('/').slice(1).join('/'),
                 proposalId: id,
-                year: proposal.year
+                votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y)),
+                year
               }
             }
             catch (e) {

@@ -85,8 +85,8 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(proposalId)])
   let theftYears = {}
   let file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
-  let amount = parseInt(proposal.theftAmt)
-  let summary = `$${abbreviateNumber(amount)}`
+  let theftAmt = parseInt(proposal.theftAmt)
+  let summary = `$${abbreviateNumber(theftAmt)}`
   proposal.theftAmt && proposal.theftYears.forEach((y) => {
     if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
   })
@@ -98,7 +98,7 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   //   fs.unlinkSync(filePath)
   return {
     id: proposalId,
-    amount,
+    theftAmt,
     votes: voterRes.totalVotes,
     detail: file || {},
     proposal_hash: proposal.yamlBlock,
@@ -313,7 +313,7 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
   proposal.theftAmt && proposal.theftYears.forEach((y) => {
     if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
   })
-  let amount = parseInt(proposal.theftAmt)
+  let theftAmt = parseInt(proposal.theftAmt)
   if (fs.existsSync(filePath))
     fs.unlinkSync(filePath)
   return {
@@ -321,11 +321,11 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
       id: proposalId,
       date: new Date(proposal.date * 1000),
       summary_year: file ? file.summary_year || file.Summary_Year : proposal.year,
-      summary: `$${abbreviateNumber(amount)}`,
+      summary: `$${abbreviateNumber(theftAmt)}`,
       author: file && file.author,
       title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
       description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
-      amount,
+      theftAmt,
       year,
       theftYears
     }, fromCache: false
