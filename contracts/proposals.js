@@ -316,6 +316,7 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
   let theftAmt = parseInt(proposal.theftAmt)
   if (fs.existsSync(filePath))
     fs.unlinkSync(filePath)
+  console.log(year)
   return {
     proposal: {
       id: proposalId,
