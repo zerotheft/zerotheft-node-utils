@@ -130,11 +130,11 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
     if (!voterContract) {
       voterContract = getVoterContract()
     }
-    let { proposalIds, counterProposalIds } = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
-    if (proposalIds.length === 0 && counterProposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
+    let { propIds, counterPropIds } = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
+    if (propIds.length === 0 && counterPropIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
     let { results: pathDetails, errors } = await PromisePool
       .withConcurrency(10)
-      .for([...proposalIds, ...counterProposalIds])
+      .for([...propIds, ...counterPropIds])
       .process(async id => {
         let proposal
         try {

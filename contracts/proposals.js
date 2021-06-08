@@ -275,10 +275,10 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
     cachedFiles = fs.readdirSync(cachedProposalDir);
   }
 
-  let { proposalIds, counterProposalIds } = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
+  let { propIds, counterPropIds } = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
   let { results, errors } = await PromisePool
     .withConcurrency(1)
-    .for([...proposalIds, ...counterProposalIds])
+    .for([...propIds, ...counterPropIds])
     .process(async pid => {
       try {
         let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path, year)
