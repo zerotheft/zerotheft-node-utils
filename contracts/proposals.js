@@ -40,6 +40,21 @@ const fetchProposalYaml = async (proposalContract, yamlBlockHash, index, allOutp
   return allOutputs
 }
 
+/**
+ * Finds stolen years from the yaml Content
+ * @param {object} yamlContent 
+ * @returns Array of years
+ */
+const yamlStolenYears = (yamlContent) => {
+  let years = []
+  Object.keys(yamlContent).forEach((key) => {
+    let val = parseInt(key.replace('stolen_', ''))
+    if (!isNaN(val)) {
+      years.push(val)
+    }
+  })
+  return years
+}
 /*
 * List proposal ids only
 */
@@ -413,6 +428,7 @@ const getCachedProposalsByPathsDir = path => {
 
 module.exports = {
   getProposals,
+  yamlStolenYears,
   allProposals,
   listProposalIds,
   proposalsFromEvents,
