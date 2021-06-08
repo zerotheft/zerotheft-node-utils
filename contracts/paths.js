@@ -101,13 +101,10 @@ const getUmbrellaPaths = async (nation = 'USA') => {
         if (['display_name', 'leaf', 'umbrella', 'parent'].includes(enode)) {
           continue
         }
-        // console.log('isUmbrella', enode)
-        // console.log('isumb', pathNode[enode]['umbrella'])
         let newPath = path ? `${path}/${enode}` : enode
         if (pathNode[enode]['umbrella']) {
           umbrellas.push(newPath)
         }
-        // console.log('next', pathNode[enode], newPath)
 
         traversePath(pathNode[enode], newPath)
       }
@@ -133,11 +130,11 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
     if (!voterContract) {
       voterContract = getVoterContract()
     }
-    const proposalIds = await proposalContract.callSmartContractGetFunc('proposalsByPath', [convertStringToHash(path)])
-    if (proposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
+    let { proposalIds, counterProposalIds } = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
+    if (proposalIds.length === 0 && counterProposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
     let { results: pathDetails, errors } = await PromisePool
       .withConcurrency(10)
-      .for(proposalIds)
+      .for([...proposalIds, ...counterProposalIds])
       .process(async id => {
         let proposal
         try {

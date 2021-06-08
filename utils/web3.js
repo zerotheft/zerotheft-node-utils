@@ -137,7 +137,6 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     // const pend = await web3.eth.getTransactionCount(address, 'pending')
     let customCommon = {}
     const txCount = await web3.eth.getTransactionCount(address)
-    // console.log(pend, txCount)
     let txArgs = {
       "chain": config.network
     }
@@ -154,7 +153,6 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
         gasPrice: web3.utils.toHex(web3.utils.toWei((GAS_PRICE || "1").toString(), 'gwei'))
       }, ...obj
     }
-    // console.log(txObject)
     let networkId, chainId;
 
     if (networkType !== 'eth' && (config.network === "kotti" || config.network === "mainnet")) {

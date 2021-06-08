@@ -260,10 +260,10 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
     cachedFiles = fs.readdirSync(cachedProposalDir);
   }
 
-  const proposalIds = await proposalC.callSmartContractGetFunc('proposalsByPath', [pathHash])
+  let { proposalIds, counterProposalIds } = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
   let { results, errors } = await PromisePool
     .withConcurrency(1)
-    .for(proposalIds)
+    .for([...proposalIds, ...counterProposalIds])
     .process(async pid => {
       try {
         let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path, year)
@@ -316,7 +316,6 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
   let theftAmt = parseInt(proposal.theftAmt)
   if (fs.existsSync(filePath))
     fs.unlinkSync(filePath)
-  console.log(year)
   return {
     proposal: {
       id: proposalId,
@@ -327,7 +326,6 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
       title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
       description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
       theftAmt,
-      year,
       theftYears
     }, fromCache: false
   }
@@ -377,7 +375,6 @@ const getYamlFromCacheOrSmartContract = async (proposalId, path, year, contract,
       filePath = `${cachedProposalDir}/${cacheYaml[0]}`
     }
   }
-
   if (!filePath) { // if not found in cache then search blockchain
     filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
     if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
