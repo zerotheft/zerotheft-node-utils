@@ -162,14 +162,12 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
           .process(async vid => {
             try {
               let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVotes', [parseInt(vid)])
-              let userInfo = await getUser(singleVoterInfo.voter)
+              // let userInfo = await getUser(singleVoterInfo.voter)
               return {
                 voterId: singleVoterInfo.voter,
                 voteId: vid,
-                ...userInfo,
                 voteType: singleVoterInfo.voteType,
                 altTheftAmt: singleVoterInfo.altTheftAmt,
-                comment: singleVoterInfo.comment,
                 votedDate: new Date(singleVoterInfo.date * 1000),
                 path: path.split('/').slice(1).join('/'),
                 proposalId: id,
