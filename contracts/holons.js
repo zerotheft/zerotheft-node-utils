@@ -123,13 +123,13 @@ const holonRating = async (holonContract, holonID) => {
 const holonComplaints = async (holonContract, holonID) => {
   try {
     let complaints = {}
-    const complainers = await holonContract.callSmartContractGetFunc('totalComplainers', [holonID])
+    const complainers = await holonContract.callSmartContractGetFunc('totalCommentors', [holonID])
     let complaintPromises = complainers.map(async (complainer) => {
-      const countComplaints = await holonContract.callSmartContractGetFunc('countUserComplaints', [holonID, complainer]);
+      const countComplaints = await holonContract.callSmartContractGetFunc('countUserComments', [holonID, complainer]);
       const userInfo = await getUser(complainer);
       for (let i = 1; i <= parseInt(countComplaints); i++) {
-        let complaintInfo = await holonContract.callSmartContractGetFunc('getUserComplaint', [holonID, complainer, i]);
-        complaints[complaintInfo.date] = { complainer: userInfo.name, comment: complaintInfo.comment, date: complaintInfo.date }
+        let complaintInfo = await holonContract.callSmartContractGetFunc('getUserComment', [holonID, complainer, i]);
+        complaints[complaintInfo.date] = { complainer: userInfo.name, description: complaintInfo.description, date: complaintInfo.date }
       }
     })
     await Promise.all(complaintPromises)
@@ -176,11 +176,11 @@ const userFeedback = async (holonID, userAddress, holonContract = null) => {
     }
     const complaints = {}
     const feedback = await holonContract.callSmartContractGetFunc('getRating', [holonID, userAddress])
-    const countComplaints = await holonContract.callSmartContractGetFunc('countUserComplaints', [holonID, userAddress]);
+    const countComplaints = await holonContract.callSmartContractGetFunc('countUserComments', [holonID, userAddress]);
     const userInfo = await getUser(userAddress);
     for (let i = 1; i <= parseInt(countComplaints); i++) {
-      let complaintInfo = await holonContract.callSmartContractGetFunc('getUserComplaint', [holonID, userAddress, i]);
-      complaints[complaintInfo.date] = { complainer: userInfo.name, comment: complaintInfo.comment, date: complaintInfo.date }
+      let complaintInfo = await holonContract.callSmartContractGetFunc('getUserComment', [holonID, userAddress, i]);
+      complaints[complaintInfo.date] = { complainer: userInfo.name, description: complaintInfo.description, date: complaintInfo.date }
     }
     return { success: true, ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, updatedAt: feedback.updatedAt }, complaintData: complaints };
   } catch (e) {
