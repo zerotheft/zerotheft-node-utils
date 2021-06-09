@@ -209,7 +209,7 @@ const proposalComplaints = async (proposalContract, proposalID) => {
       const countComplaints = await proposalContract.callSmartContractGetFunc('countUserComplaints', [proposalID, complainer]);
       const userInfo = await getUser(complainer);
       for (let i = 1; i <= parseInt(countComplaints); i++) {
-        let complaintInfo = await proposalContract.callSmartContractGetFunc('getUserComplaint', [proposalID, complainer, i]);
+        let complaintInfo = await proposalContract.callSmartContractGetFunc('getUserComment', [proposalID, complainer, i]);
         complaints[complaintInfo.date] = { complainer: userInfo.name, description: complaintInfo.description, date: complaintInfo.date }
       }
     })
@@ -245,7 +245,7 @@ const userFeedback = async (proposalID, userAddress, proposalContract = null) =>
     const countComplaints = await proposalContract.callSmartContractGetFunc('countUserComplaints', [proposalID, userAddress]);
     const userInfo = await getUser(userAddress);
     for (let i = 1; i <= parseInt(countComplaints); i++) {
-      let complaintInfo = await proposalContract.callSmartContractGetFunc('getUserComplaint', [proposalID, userAddress, i]);
+      let complaintInfo = await proposalContract.callSmartContractGetFunc('getUserComment', [proposalID, userAddress, i]);
       complaints[complaintInfo.date] = { complainer: userInfo.name, description: complaintInfo.description, date: complaintInfo.date }
     }
     return { success: true, ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, updatedAt: feedback.updatedAt }, complaintData: complaints };
