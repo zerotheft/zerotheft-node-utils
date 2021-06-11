@@ -175,7 +175,7 @@ const proposalsFromEvents = async (methodName, args = {}) => {
 */
 const voteByHolon = async body => {
   const contract = getProposalContract()
-  return contract.createTransaction('holonVote', [true, parseInt(body.proposalId), body.altTheftAmounts, body.comment || '', body.voter, body.signedMessage, 0, body.priorVoteId], undefined, undefined, 'proxy')
+  return contract.createTransaction('holonVote', [true, parseInt(body.proposalId), body.altTheftAmounts, body.comment || '', body.voter, body.signedMessage, body.priorVoteId], undefined, undefined, 'proxy')
 }
 
 /*
