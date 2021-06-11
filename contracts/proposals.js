@@ -102,7 +102,7 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   let file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
   let theftAmt = parseInt(proposal.theftAmt)
   let summary = `$${abbreviateNumber(theftAmt)}`
-  proposal.theftAmt && proposal.theftYears.forEach((y) => {
+  proposal.theftAmt && yamlStolenYears(file).forEach((y) => {
     if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
   })
   //get ratings of proposal
@@ -324,8 +324,7 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
 
   const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(proposalId, path, year, proposalC, cachedYamls)
   proposal = tmpProposal
-
-  proposal.theftAmt && proposal.theftYears.forEach((y) => {
+  proposal.theftAmt && yamlStolenYears(file).forEach((y) => {
     if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
   })
   let theftAmt = parseInt(proposal.theftAmt)
