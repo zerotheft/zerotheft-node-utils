@@ -146,7 +146,7 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
         }
 
         //get rid of un-necessary  keys
-        ['detail', 'ratings', 'complaints', 'description'].forEach(e => delete proposal[e]);
+        ['detail', 'ratings', 'complaints', 'description', 'proposal_hash'].forEach(e => delete proposal[e]);
 
         if (!withInfo) {
           // pathDetails.push(proposal)
@@ -165,7 +165,6 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
                 voteId: vid,
                 voteType: singleVoterInfo.voteType,
                 altTheftAmt: singleVoterInfo.altTheftAmounts === "" ? {} : JSON.parse(singleVoterInfo.altTheftAmounts),
-                votedDate: new Date(singleVoterInfo.date * 1000),
                 path: path.split('/').slice(1).join('/'),
                 proposalId: id,
                 votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y)),
