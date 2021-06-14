@@ -6,7 +6,7 @@ const getUser = async (address, userContract = null) => {
   }
   try {
     const user = await userContract.callSmartContractGetFunc('getUser', [address])
-    const userJSON = JSON.parse(user)
+    const userJSON = JSON.parse(user.details)
     return {
       success: true,
       name: userJSON["fullName"],

@@ -1,7 +1,5 @@
-const { mean } = require('lodash');
-const { getUser } = require('./users')
 const { addHolonDonor } = require('./holons')
-const { getWalletContract, getHolonContract } = require('../utils/contract')
+const { getWalletContract } = require('../utils/contract')
 
 /* get wallet information based on user address */
 const getWallet = async (user, walletContract) => {
@@ -78,13 +76,13 @@ const holonWalletActivities = async (user, walletContract) => {
     const pastPayouts = []
     for (let i = 1; i <= transactionsCount; i++) {
       const activity = await walletContract.callSmartContractGetFunc('getHolonActivity', [user, i]);
-      if(activity.transactionType === 'credit') {
+      if (activity.transactionType === 'credit') {
         futurePayouts.push(activity)
       } else {
         pastPayouts.push(activity)
       }
     }
-    return { success: true, activities: {futurePayouts, pastPayouts} }
+    return { success: true, activities: { futurePayouts, pastPayouts } }
   } catch (e) {
     return { success: false, error: e.message }
   }
