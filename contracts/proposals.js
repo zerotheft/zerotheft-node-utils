@@ -100,11 +100,14 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(proposalId)])
   let theftYears = {}
   let file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
-  let theftAmt = parseInt(proposal.theftAmt)
-  let summary = `$${abbreviateNumber(theftAmt)}`
-  proposal.theftAmt && yamlStolenYears(file).forEach((y) => {
-    if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+  let theftAmt = 0
+  yamlStolenYears(file).forEach((y) => {
+    if (`stolen_${y}` in file) {
+      theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+      theftAmt += theftYears[y]
+    }
   })
+  let summary = `$${abbreviateNumber(theftAmt)}`
   //get ratings of proposal
   const feedbacks = await proposalFeedback(proposalId, proposalContract)
   const ratings = get(feedbacks, 'ratingData', 0)
