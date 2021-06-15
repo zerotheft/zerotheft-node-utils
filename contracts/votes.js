@@ -16,7 +16,7 @@ const userPriorVote = async body => {
     const vote = await voterC.callSmartContractGetFunc('getVote', [parseInt(priorvoteID)])
     const proposal = await getProposalDetails(vote.proposalID, proposalC, voterC)
 
-    return { success: true, id: priorvoteID, ...proposal, ...vote }
+    return { success: true, id: priorvoteID, pid: proposal.id, ...vote }
   }
   catch (e) {
     console.log('userPriorVote::', e.message)
