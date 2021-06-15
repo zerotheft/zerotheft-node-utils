@@ -55,6 +55,23 @@ const yamlStolenYears = (yamlContent) => {
   })
   return years
 }
+/**
+ * Gives proposal theft years amount info and total theft Amount
+ * @param {object} file 
+ * @returns theftYears - a years wise thefmt amount
+ * @returns theftAmt - total theftAmount of a proposal.
+ */
+const proposalYearTheftInfo = (file) => {
+  let theftYears = {}
+  let theftAmt = 0
+  yamlStolenYears(file).forEach((y) => {
+    if (`stolen_${y}` in file) {
+      theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+      theftAmt += theftYears[y]
+    }
+  })
+  return { theftYears, theftAmt }
+}
 /*
 * List proposal ids only
 */
@@ -78,6 +95,7 @@ const listProposalIds = async (contract = null) => {
   return allIds
 }
 
+
 /*
 * Return proposal details based on proposal IDs
 */
@@ -98,15 +116,8 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   }
 
   const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(proposalId)])
-  let theftYears = {}
   let file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
-  let theftAmt = 0
-  yamlStolenYears(file).forEach((y) => {
-    if (`stolen_${y}` in file) {
-      theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
-      theftAmt += theftYears[y]
-    }
-  })
+  let { theftYears, theftAmt } = proposalYearTheftInfo(file)
   let summary = `$${abbreviateNumber(theftAmt)}`
   //get ratings of proposal
   const feedbacks = await proposalFeedback(proposalId, proposalContract)
@@ -432,6 +443,7 @@ const getCachedProposalsByPathsDir = path => {
 module.exports = {
   getProposals,
   yamlStolenYears,
+  proposalYearTheftInfo,
   allProposals,
   listProposalIds,
   proposalsFromEvents,
