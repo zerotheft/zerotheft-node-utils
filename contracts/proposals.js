@@ -318,16 +318,20 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
 const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path, year) => {
   let filePath
   let theftYears = {}
+  let theftAmt = 0
 
   let proposal = cachedProposalsByPaths[proposalId]
-  if (proposal) return { proposal, fromCache: true }
+  // if (proposal) return { proposal, fromCache: true }
 
   const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(proposalId, path, year, proposalC, cachedYamls)
   proposal = tmpProposal
-  proposal.theftAmt && yamlStolenYears(file).forEach((y) => {
-    if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+  yamlStolenYears(file).forEach((y) => {
+    if (`stolen_${y}` in file) {
+      theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+      theftAmt += theftYears[y]
+    }
   })
-  let theftAmt = parseInt(proposal.theftAmt)
+  console.log(theftYears)
   if (fs.existsSync(filePath))
     fs.unlinkSync(filePath)
   return {
