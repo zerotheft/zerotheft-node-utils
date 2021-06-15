@@ -55,6 +55,23 @@ const yamlStolenYears = (yamlContent) => {
   })
   return years
 }
+/**
+ * Gives proposal theft years amount info and total theft Amount
+ * @param {object} file 
+ * @returns theftYears - a years wise thefmt amount
+ * @returns theftAmt - total theftAmount of a proposal.
+ */
+const proposalYearTheftInfo = (file) => {
+  let theftYears = {}
+  let theftAmt = 0
+  yamlStolenYears(file).forEach((y) => {
+    if (`stolen_${y}` in file) {
+      theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+      theftAmt += theftYears[y]
+    }
+  })
+  return { theftYears, theftAmt }
+}
 /*
 * List proposal ids only
 */
@@ -78,6 +95,7 @@ const listProposalIds = async (contract = null) => {
   return allIds
 }
 
+
 /*
 * Return proposal details based on proposal IDs
 */
@@ -88,7 +106,7 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   if (!voterContract) {
     voterContract = getVoterContract()
   }
-  const proposal = await proposalContract.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
+  const proposal = await proposalContract.callSmartContractGetFunc('getProposal', [proposalId])
   const filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
 
   if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
@@ -97,14 +115,10 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
     // outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
   }
 
-  const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(proposalId)])
-  let theftYears = {}
+  const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalId])
   let file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
-  let theftAmt = parseInt(proposal.theftAmt)
+  let { theftYears, theftAmt } = proposalYearTheftInfo(file)
   let summary = `$${abbreviateNumber(theftAmt)}`
-  proposal.theftAmt && proposal.theftYears.forEach((y) => {
-    if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
-  })
   //get ratings of proposal
   const feedbacks = await proposalFeedback(proposalId, proposalContract)
   const ratings = get(feedbacks, 'ratingData', 0)
@@ -133,10 +147,10 @@ const getProposals = async (proposalIDs, proposalContract = null) => {
     proposalContract.init()
   }
   const promises = proposalIDs.map(async (proposalID) => {
-    const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [parseInt(proposalID)])
+    const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [proposalID])
     const votesContract = getVoterContract()
     votesContract.init()
-    const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(proposalID)])
+    const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalID])
     const mainProposal = {
       "id": proposalID,
       "owner": proposalDetail[0],
@@ -175,7 +189,7 @@ const proposalsFromEvents = async (methodName, args = {}) => {
 */
 const voteByHolon = async body => {
   const contract = getProposalContract()
-  return contract.createTransaction('holonVote', [true, parseInt(body.proposalId), body.altTheftAmounts, body.comment || '', body.voter, body.signedMessage, 0, body.priorVoteId], undefined, undefined, 'proxy')
+  return contract.createTransaction('holonVote', [true, body.proposalId, body.altTheftAmounts, body.comment || '', body.voter, body.signedMessage, body.priorVoteId], undefined, undefined, 'proxy')
 }
 
 /*
@@ -282,7 +296,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
     .process(async pid => {
       try {
         let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path, year)
-        const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [parseInt(pid)])
+        const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
         const feedbacks = await proposalFeedback(pid, proposalC)
 
         const ratings = get(feedbacks, 'ratingData', 0)
@@ -318,17 +332,19 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
 const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path, year) => {
   let filePath
   let theftYears = {}
+  let theftAmt = 0
 
   let proposal = cachedProposalsByPaths[proposalId]
-  if (proposal) return { proposal, fromCache: true }
+  // if (proposal) return { proposal, fromCache: true }
 
   const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(proposalId, path, year, proposalC, cachedYamls)
   proposal = tmpProposal
-
-  proposal.theftAmt && proposal.theftYears.forEach((y) => {
-    if (`stolen_${y}` in file) theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+  yamlStolenYears(file).forEach((y) => {
+    if (`stolen_${y}` in file) {
+      theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
+      theftAmt += theftYears[y]
+    }
   })
-  let theftAmt = parseInt(proposal.theftAmt)
   if (fs.existsSync(filePath))
     fs.unlinkSync(filePath)
   return {
@@ -373,7 +389,7 @@ const getYamlFromCacheOrSmartContract = async (proposalId, path, year, contract,
   let yamlJSON, filePath
 
   const proposalC = contract || getProposalContract()
-  const proposal = await proposalC.callSmartContractGetFunc('getProposal', [parseInt(proposalId)])
+  const proposal = await proposalC.callSmartContractGetFunc('getProposal', [proposalId])
 
   //check if proposal Yaml is in cache
   const cachedProposalDir = `${nationExportsDir}/${path}/${year}/proposals`
@@ -426,6 +442,7 @@ const getCachedProposalsByPathsDir = path => {
 module.exports = {
   getProposals,
   yamlStolenYears,
+  proposalYearTheftInfo,
   allProposals,
   listProposalIds,
   proposalsFromEvents,
