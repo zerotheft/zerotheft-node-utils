@@ -65,17 +65,18 @@ const getAllVoteIds = async () => {
         const vote = await contract.callSmartContractGetFunc('getVote', [parseInt(voteID)])
         const { voter, voteIsTheft, proposalID, customTheftAmount, comment, date } = vote
         const voteExtra = await contract.callSmartContractGetFunc('getVoteExtra', [parseInt(voteID)])
-        const { holon,  isArchive } = voteExtra
+        const { holon, voteReplaces, voteReplacedBy } = voteExtra
 
         allVotes.push({
           "id": voteID,
           voter,
-          voteType:voteIsTheft,
+          voteType: voteIsTheft,
           "proposal": proposalID,
-          altTheftAmt:customTheftAmount,
+          altTheftAmt: customTheftAmount,
           comment,
           holon,
-          isArchive,
+          voteReplaces,
+          voteReplacedBy,
           "timestamp": date
         })
 
