@@ -1,8 +1,50 @@
 const fs = require('fs')
+const { get, remove, uniq } = require('lodash')
 const { getProposalContract, getVoterContract } = require('../utils/contract')
-const { convertStringToHash } = require('../utils/web3')
+const { convertStringToHash, convertToAscii } = require('../utils/web3')
 const { getProposalDetails } = require('./proposals')
+const { userSpecificVotesFile, proposalVotesFile, proposalArchiveVotesFile, proposalVotersFile, writeFile, voteDataRollupsFile } = require('../utils/common')
 
+
+
+const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
+  // keep the roll ups record in file
+  let _voter = get(rollups.userSpecificVotes, (voteData.voter).toLowerCase(), {})
+  console.log(_voter)
+  let _vote = get(_voter, (proposalInfo.path).toLowerCase(), (voteData.voteID).toLowerCase())
+  _voter[(proposalInfo.path).toLowerCase()] = _vote.toLowerCase()
+  rollups.userSpecificVotes[(voteData.voter).toLowerCase()] = _voter
+
+  // if prior Vote is present
+  console.log(voteData, voteData.voteReplaces)
+  if (!voteData.voteReplaces.includes(convertToAscii(0))) {
+    const _priorVote = await voterC.callSmartContractGetFunc('getVote', [voteData.voteReplaces])
+
+    let _priorPVotes = get(rollups.proposalVotes, (_priorVote.proposalID).toLowerCase(), [])
+    remove(_priorPVotes, (_v) => {
+      return (_v).toLowerCase() === (voteData.voteReplaces).toLowerCase()
+    })
+    let _pArchiveVotes = get(rollups.proposalArchiveVotes, (voteData.proposalID).toLowerCase(), [])
+    _pArchiveVotes.push((voteData.voteReplaces).toLowerCase())
+    rollups.proposalArchiveVotes[(voteData.proposalID).toLowerCase()] = uniq(_pArchiveVotes)
+  }
+
+  let _pvotes = get(rollups.proposalVotes, (voteData.proposalID).toLowerCase(), [])
+  _pvotes.push((voteData.voteID).toLowerCase())
+  rollups.proposalVotes[(voteData.proposalID).toLowerCase()] = uniq(_pvotes)
+
+  let _pvoters = get(rollups.proposalVoters, (voteData.proposalID).toLowerCase(), [])
+  _pvoters.push((voteData.voter).toLowerCase())
+  rollups.proposalVoters[(voteData.proposalID).toLowerCase()] = uniq(_pvoters)
+}
+
+//save vote roll ups date
+const saveVoteRollupsData = async (voteData) => {
+  if (voteData.userSpecificVotes) await writeFile(userSpecificVotesFile, voteData.userSpecificVotes)
+  if (voteData.proposalVotes) await writeFile(proposalVotesFile, voteData.proposalVotes)
+  if (voteData.proposalVoters) await writeFile(proposalVotersFile, voteData.proposalVoters)
+  if (voteData.proposalArchiveVotes) await writeFile(proposalArchiveVotesFile, voteData.proposalArchiveVotes)
+}
 /*
 * Get user earlier vote to the proposal
 */
@@ -11,7 +53,10 @@ const userPriorVote = async body => {
   const proposalC = getProposalContract()
   try {
     if (!body.address) throw new Error('user address not present for prior vote')
-    let priorvoteID = await voterC.callSmartContractGetFunc('getUserSpecificVote', [body.address, convertStringToHash(body.url)])
+
+    let { userSpecificVotes } = await voteDataRollupsFile()
+    // let priorvoteID = await voterC.callSmartContractGetFunc('getUserSpecificVote', [body.address, convertStringToHash(body.url)])
+    let priorvoteID = (!isEmpty(userSpecificVotes) && userSpecificVotes[body.address]) ? get(userSpecificVotes[body.address], convertStringToHash(body.url), 0) : 0
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
     const proposal = await getProposalDetails(vote.proposalID, proposalC, voterC)
@@ -20,6 +65,39 @@ const userPriorVote = async body => {
   }
   catch (e) {
     console.log('userPriorVote::', e.message)
+    return { success: false, error: e.message }
+
+  }
+}
+
+/**
+ * Rollups the vote Data
+ * @param {object} body Payload containing voteInformation
+ * @returns Json object with success or failure message
+ */
+const voteDataRollups = async body => {
+  const voterC = getVoterContract()
+  const proposalC = getProposalContract()
+  try {
+    const voteID = body.voteID
+    if (!voteID) throw new Error('vote ID not present')
+
+    let { voter, proposalID } = await voterC.callSmartContractGetFunc('getVote', [voteID])
+    const { voteReplaces } = await voterC.callSmartContractGetFunc('getVoteExtra', [voteID])
+    const proposalInfo = await proposalC.callSmartContractGetFunc('getProposal', [proposalID])
+
+    let { userSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes } = await voteDataRollupsFile()
+
+    // keep the roll ups record in file
+    await updateVoteDataRollups({ userSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes }, { voter, voteID, proposalID, voteReplaces }, proposalInfo, voterC)
+
+    //save all the rollups
+    await saveVoteRollupsData({ userSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes })
+
+    return { success: true, message: 'vote data rollups complete' }
+  }
+  catch (e) {
+    console.log('voteDataRollups::', e.message)
     return { success: false, error: e.message }
 
   }
@@ -102,5 +180,8 @@ const getAllVoteIds = async () => {
 module.exports = {
   userPriorVote,
   listVoteIds,
-  getAllVoteIds
+  getAllVoteIds,
+  voteDataRollups,
+  updateVoteDataRollups,
+  saveVoteRollupsData
 }
