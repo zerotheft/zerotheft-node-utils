@@ -10,13 +10,11 @@ const { userSpecificVotesFile, proposalVotesFile, proposalArchiveVotesFile, prop
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
   let _voter = get(rollups.userSpecificVotes, (voteData.voter).toLowerCase(), {})
-  console.log(_voter)
   let _vote = get(_voter, (proposalInfo.path).toLowerCase(), (voteData.voteID).toLowerCase())
   _voter[(proposalInfo.path).toLowerCase()] = _vote.toLowerCase()
   rollups.userSpecificVotes[(voteData.voter).toLowerCase()] = _voter
 
   // if prior Vote is present
-  console.log(voteData, voteData.voteReplaces)
   if (!voteData.voteReplaces.includes(convertToAscii(0))) {
     const _priorVote = await voterC.callSmartContractGetFunc('getVote', [voteData.voteReplaces])
 
