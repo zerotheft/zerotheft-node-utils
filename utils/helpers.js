@@ -94,6 +94,7 @@ const abbreviateNumber = (value, decimal = 2) => {
   if (value >= 1e15 && value < 1e18) return +(value / 1e15).toFixed(decimal) + "Qua"
   if (value >= 1e18) return +(value / 1e18).toFixed(decimal) + "Qui"
 }
+
 module.exports = {
   ROLES,
   HOLONSTATUSES,

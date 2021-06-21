@@ -10,9 +10,8 @@ const { convertStringToHash } = require('../utils/web3')
 const { convertStringDollarToNumeric, abbreviateNumber } = require('../utils/helpers')
 const { getProposalContract, getVoterContract } = require('../utils/contract')
 const { getGithubTemplate } = require('../utils/github')
-
+const { exportsDirNation, voteDataRollupsFile } = require('../utils/common')
 const homedir = APP_PATH || require('os').homedir()
-const nationExportsDir = `${APP_PATH}/public/exports/nation_data`
 const tmpPropDir = dir.join(homedir, '/tmp')
 if (!fs.existsSync(tmpPropDir)) {
   fs.mkdirSync(tmpPropDir, { recursive: true });
@@ -115,7 +114,10 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
     // outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
   }
 
-  const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalId])
+  // const voterRes = await voterContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalId])
+
+  let { proposalVotes } = await voteDataRollupsFile()
+
   let file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
   let { theftYears, theftAmt } = proposalYearTheftInfo(file)
   let summary = `$${abbreviateNumber(theftAmt)}`
@@ -128,7 +130,7 @@ const getProposalDetails = async (proposalId, proposalContract = null, voterCont
   return {
     id: proposalId,
     theftAmt,
-    votes: voterRes.totalVotes,
+    votes: !isEmpty(proposalVotes) ? get(proposalVotes, proposalId.toLowerCase(), []) : [],
     detail: file || {},
     proposal_hash: proposal.yamlBlock,
     date: new Date(proposal.date * 1000),
@@ -150,12 +152,14 @@ const getProposals = async (proposalIDs, proposalContract = null) => {
     const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [proposalID])
     const votesContract = getVoterContract()
     votesContract.init()
-    const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalID])
+    // const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalID])
+    let { proposalVotes } = await voteDataRollupsFile()
+
     const mainProposal = {
       "id": proposalID,
       "owner": proposalDetail[0],
       "summary": proposalDetail[1],
-      "votes": votingDetail[0].length,
+      "votes": !isEmpty(proposalVotes) ? get(proposalVotes, proposalID.toLowerCase(), []) : [],
       "proposal_hash": proposalDetail[3],
       "created_at": proposalDetail[4]
     }
@@ -284,7 +288,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
   const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
   //get cachedproposal
   let cachedFiles = [], newProposals = {}
-  const cachedProposalDir = `${nationExportsDir}/${path}/${year}/proposals`
+  const cachedProposalDir = `${exportsDirNation}/${path}/${year}/proposals`
   if (fs.existsSync(cachedProposalDir)) {
     cachedFiles = fs.readdirSync(cachedProposalDir);
   }
@@ -296,7 +300,9 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
     .process(async pid => {
       try {
         let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path, year)
-        const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
+
+        let { proposalVotes } = await voteDataRollupsFile()
+        //   const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
         const feedbacks = await proposalFeedback(pid, proposalC)
 
         const ratings = get(feedbacks, 'ratingData', 0)
@@ -306,7 +312,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
         }
         return {
           ...pData.proposal,
-          votes: voterRes.totalVotes.length,
+          votes: !isEmpty(proposalVotes) ? get(proposalVotes, pid.toLowerCase(), []).length : 0,
           ratings,
           complaints
         }
@@ -392,7 +398,7 @@ const getYamlFromCacheOrSmartContract = async (proposalId, path, year, contract,
   const proposal = await proposalC.callSmartContractGetFunc('getProposal', [proposalId])
 
   //check if proposal Yaml is in cache
-  const cachedProposalDir = `${nationExportsDir}/${path}/${year}/proposals`
+  const cachedProposalDir = `${exportsDirNation}/${path}/${year}/proposals`
   if (!cachedYamls) {
     cachedYamls = []
     if (fs.existsSync(cachedProposalDir)) {

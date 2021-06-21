@@ -207,6 +207,12 @@ const convertStringToHash = (item) => {
   return val
 }
 
+const convertToAscii = (item) => {
+  const web3 = initiateWeb3()
+  const val = web3.utils.asciiToHex(item)
+  return val
+}
+
 module.exports = {
   createAccount,
   importByPrivateKey,
@@ -219,5 +225,6 @@ module.exports = {
   convertStringToBytes,
   convertStringToHash,
   carryTransaction,
-  createMockAccount
+  createMockAccount,
+  convertToAscii
 }
