@@ -121,7 +121,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
 /*
 * Return all the information of path including proposals and votes
 */
-const getPathDetail = async (path, year, proposalContract = null, voterContract = null, withInfo) => {
+const getPathDetail = async (path, proposalContract = null, voterContract = null, withInfo) => {
   let allVotesInfo = []
   try {
     if (!proposalContract) {
@@ -130,11 +130,11 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
     if (!voterContract) {
       voterContract = getVoterContract()
     }
-    let { propIds, counterPropIds } = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
-    if (propIds.length === 0 && counterPropIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
+    let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path)])
+    if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
     let { results: pathDetails, errors } = await PromisePool
       .withConcurrency(10)
-      .for([...propIds, ...counterPropIds])
+      .for(propIds)
       .process(async id => {
         let proposal
         try {
@@ -167,8 +167,7 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
                 altTheftAmt: singleVoterInfo.customTheftAmount === "" ? {} : JSON.parse(singleVoterInfo.customTheftAmount),
                 path: path.split('/').slice(1).join('/'),
                 proposalId: id,
-                votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y)),
-                year
+                votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y))
               }
             }
             catch (e) {
@@ -177,7 +176,7 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
             }
           })
         allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal ${id} detail fetched(year ${year})`)
+        console.log(`Proposal ${id} detail fetched`)
 
         return {
           ...proposal,
