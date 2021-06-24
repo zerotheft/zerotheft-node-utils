@@ -130,12 +130,14 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
     if (!voterContract) {
       voterContract = getVoterContract()
     }
+    let count = 0;
     let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path)])
     if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
     let { results: pathDetails, errors } = await PromisePool
       .withConcurrency(10)
       .for(propIds)
       .process(async id => {
+        count++;
         let proposal
         try {
           proposal = await getProposalDetails(id, proposalContract, voterContract)
@@ -176,7 +178,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
             }
           })
         allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal ${id} detail fetched`)
+        console.log(`Proposal :: ${count} :: ${id} detail fetched`)
 
         return {
           ...proposal,
