@@ -273,33 +273,34 @@ const userFeedback = async (proposalID, userAddress, proposalContract = null) =>
 }
 
 /**
- * Returns proposal details by path. Eventhough this method tries to fetch the proposals based on path and year, in reality proposals aren't indexed to year.
+ * Returns proposal details by path. Eventhough this method tries to fetch the proposals based on path
  * @param {string} path 
- * @param {integer} year 
  * @param {Object} contract 
  * @param {Object} voterContract 
  * @returns proposal JSONs
  */
-const getPathProposalsByYear = async (path, year, contract, voterContract) => {
+const getPathProposalsByPath = async (path, contract, voterContract) => {
   const pathHash = convertStringToHash(path)
   const proposalC = contract || getProposalContract()
-  const voterC = voterContract || getVoterContract()
+  // const voterC = voterContract || getVoterContract()
 
   const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
   //get cachedproposal
   let cachedFiles = [], newProposals = {}
-  const cachedProposalDir = `${exportsDirNation}/${path}/${year}/proposals`
+  const cachedProposalDir = `${exportsDirNation}/${path}/proposals`
   if (fs.existsSync(cachedProposalDir)) {
     cachedFiles = fs.readdirSync(cachedProposalDir);
   }
 
-  let { propIds, counterPropIds } = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
+  // let { propIds, counterPropIds } = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
+  let { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash])
+
   let { results, errors } = await PromisePool
     .withConcurrency(1)
-    .for([...propIds, ...counterPropIds])
+    .for(propIds)
     .process(async pid => {
       try {
-        let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path, year)
+        let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path)
 
         let { proposalVotes } = await voteDataRollupsFile()
         //   const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
@@ -317,7 +318,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
           complaints
         }
       } catch (e) {
-        console.log('getPathProposalsByYear', pid, e)
+        console.log('getPathProposalsByPath', pid, e)
         return null;
       }
     })
@@ -335,7 +336,7 @@ const getPathProposalsByYear = async (path, year, contract, voterContract) => {
  * @param {String} cacheFile 
  * @returns Proposal's object
  */
-const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path, year) => {
+const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path) => {
   let filePath
   let theftYears = {}
   let theftAmt = 0
@@ -343,7 +344,7 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
   let proposal = cachedProposalsByPaths[proposalId]
   // if (proposal) return { proposal, fromCache: true }
 
-  const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(proposalId, path, year, proposalC, cachedYamls)
+  const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(proposalId, path, proposalC, cachedYamls)
   proposal = tmpProposal
   yamlStolenYears(file).forEach((y) => {
     if (`stolen_${y}` in file) {
@@ -357,7 +358,6 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
     proposal: {
       id: proposalId,
       date: new Date(proposal.date * 1000),
-      summary_year: file ? file.summary_year || file.Summary_Year : proposal.year,
       summary: `$${abbreviateNumber(theftAmt)}`,
       author: file && file.author,
       title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
@@ -372,12 +372,11 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
  * Returns proposal yaml either from cache or from blockchain
  * @param {integer} proposalId 
  * @param {String} path 
- * @param {String} year 
  * @param {Object} contract 
  * @returns Proposal's YAML object
  */
-const getProposalYaml = async (proposalId, path, year, contract) => {
-  const { yamlJSON } = await getYamlFromCacheOrSmartContract(proposalId, path, year, contract)
+const getProposalYaml = async (proposalId, path, contract) => {
+  const { yamlJSON } = await getYamlFromCacheOrSmartContract(proposalId, path, contract)
 
   return yamlJSON
 }
@@ -386,19 +385,18 @@ const getProposalYaml = async (proposalId, path, year, contract) => {
  * Returns proposal yaml either from cache or from blockchain
  * @param {integer} proposalId 
  * @param {String} path 
- * @param {String} year 
  * @param {Object} contract 
  * @param {Object} cachedYamls 
  * @returns Proposal's YAML object
  */
-const getYamlFromCacheOrSmartContract = async (proposalId, path, year, contract, cachedYamls) => {
+const getYamlFromCacheOrSmartContract = async (proposalId, path, contract, cachedYamls) => {
   let yamlJSON, filePath
 
   const proposalC = contract || getProposalContract()
   const proposal = await proposalC.callSmartContractGetFunc('getProposal', [proposalId])
 
   //check if proposal Yaml is in cache
-  const cachedProposalDir = `${exportsDirNation}/${path}/${year}/proposals`
+  const cachedProposalDir = `${exportsDirNation}/${path}/proposals`
   if (!cachedYamls) {
     cachedYamls = []
     if (fs.existsSync(cachedProposalDir)) {
@@ -459,6 +457,6 @@ module.exports = {
   proposalFeedback,
   userFeedback,
   getProposalDetails,
-  getPathProposalsByYear,
+  getPathProposalsByPath,
   getProposalYaml
 }
