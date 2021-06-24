@@ -14,8 +14,6 @@ const getGithubTemplate = async (path) => {
   if (proposalStatus === 200) {
     return proposalData
   }
-  // }
-
   return
 }
 
