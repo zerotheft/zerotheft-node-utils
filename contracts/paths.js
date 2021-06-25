@@ -55,7 +55,7 @@ const allNations = async () => {
 
 const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
   Object.keys(path).map((key) => {
-    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name'].includes(key)) return
+    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version'].includes(key)) return
     Object.keys(path).forEach((item) => {
       if (paths.indexOf(item) > 0)
         paths.length = paths.indexOf(item)
@@ -180,7 +180,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
             }
           })
         allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal${path} :: ${count} :: ${id} detail fetched`)
+        console.log(`Proposal: ${path} :: ${count} :: ${id} detail fetched`)
 
         return {
           ...proposal,
