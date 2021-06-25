@@ -95,17 +95,18 @@ const getUmbrellaPaths = async (nation = 'USA') => {
   try {
     const pathData = await pathsByNation(nation)
     const paths = pathData[nation]
-    let umbrellas = []
+    let umbrellas = {}
     const traversePath = async (pathNode, path = '') => {
       for (let enode of Object.keys(pathNode)) {
-        if (['display_name', 'leaf', 'umbrella', 'parent'].includes(enode)) {
-          continue
+        if (enode === "metadata" && pathNode[enode]['umbrella']) {
+          umbrellas[path.toString()] = {
+            "value_parent": pathNode[enode]["value_parent"]
+          }
         }
         let newPath = path ? `${path}/${enode}` : enode
-        if (pathNode[enode]['umbrella']) {
-          umbrellas.push(newPath)
+        if (['display_name', 'leaf', 'umbrella', 'parent', 'metadata'].includes(enode)) {
+          continue
         }
-
         traversePath(pathNode[enode], newPath)
       }
       return umbrellas
@@ -113,6 +114,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
     traversePath(paths)
 
     updateUmbrellaPaths({ paths: umbrellas })
+
     return umbrellas
   } catch (e) {
     throw new Error(`getUmbrellaPaths:: ${e.message}`)
@@ -178,7 +180,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
             }
           })
         allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal :: ${count} :: ${id} detail fetched`)
+        console.log(`Proposal${path} :: ${count} :: ${id} detail fetched`)
 
         return {
           ...proposal,
