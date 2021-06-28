@@ -9,7 +9,7 @@ const getGithubTemplate = async (path) => {
   //   if (!toGet) return
   const proposalTemplate = last(path.split('/'))
 
-  const templateUrl = `https://raw.githubcitizencontent.com/zerotheft/template_problem_hierarchy_yamls/yaml_all_years/${path}/${proposalTemplate}.yaml`
+  const templateUrl = `https://raw.githubusercontent.com/zerotheft/template_problem_hierarchy_yamls/yaml_all_years/${path}/${proposalTemplate}.yaml`
   const { data: proposalData, status: proposalStatus } = await callGithub(templateUrl)
   if (proposalStatus === 200) {
     return proposalData

@@ -2,9 +2,9 @@ const fs = require('fs')
 const { APP_PATH } = require('../config')
 const exportsDirNation = `${APP_PATH}/public/exports/nation_data`
 const citizenSpecificVotesFile = `${exportsDirNation}/citizen_specific_votes.json`
-const proposalVotesFile = `${exportsDirNation}/proposalVotes.json`
-const proposalVotersFile = `${exportsDirNation}/proposalVoters.json`
-const proposalArchiveVotesFile = `${exportsDirNation}/proposalArchiveVotes.json`
+const proposalVotesFile = `${exportsDirNation}/proposal_votes.json`
+const proposalVotersFile = `${exportsDirNation}/proposal_voters.json`
+const proposalArchiveVotesFile = `${exportsDirNation}/proposal_archive_votes.json`
 
 
 const writeFile = async (filePath, input) => {
