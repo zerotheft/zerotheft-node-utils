@@ -4,7 +4,7 @@ const PromisePool = require('@supercharge/promise-pool')
 const splitFile = require('split-file');
 const yaml = require('js-yaml')
 const { mean, get, isEmpty } = require('lodash');
-const { getUser } = require('./users')
+const { getCitizen } = require('./citizens')
 const { APP_PATH } = require('../config')
 const { convertStringToHash } = require('../utils/web3')
 const { convertStringDollarToNumeric, abbreviateNumber } = require('../utils/helpers')
@@ -224,11 +224,11 @@ const proposalComplaints = async (proposalContract, proposalID) => {
     let complaints = {}
     const complainers = await proposalContract.callSmartContractGetFunc('totalComplainers', [proposalID])
     let complaintPromises = complainers.map(async (complainer) => {
-      const countComplaints = await proposalContract.callSmartContractGetFunc('countUserComments', [proposalID, complainer]);
-      const userInfo = await getUser(complainer);
+      const countComplaints = await proposalContract.callSmartContractGetFunc('countCitizenComments', [proposalID, complainer]);
+      const citizenInfo = await getCitizen(complainer);
       for (let i = 1; i <= parseInt(countComplaints); i++) {
-        let complaintInfo = await proposalContract.callSmartContractGetFunc('getUserComment', [proposalID, complainer, i]);
-        complaints[complaintInfo.date] = { complainer: userInfo.name, description: complaintInfo.description, date: complaintInfo.date }
+        let complaintInfo = await proposalContract.callSmartContractGetFunc('getCitizenComment', [proposalID, complainer, i]);
+        complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
       }
     })
     await Promise.all(complaintPromises)
@@ -252,19 +252,19 @@ const proposalFeedback = async (proposalID, proposalContract = null) => {
   return { success: true, ratingData, complaintData };
 }
 
-const userFeedback = async (proposalID, userAddress, proposalContract = null) => {
+const citizenFeedback = async (proposalID, citizenAddress, proposalContract = null) => {
   try {
     if (!proposalContract) {
       proposalContract = getProposalContract()
       proposalContract.init()
     }
     const complaints = {}
-    const feedback = await proposalContract.callSmartContractGetFunc('getRating', [proposalID, userAddress])
-    const countComplaints = await proposalContract.callSmartContractGetFunc('countUserComments', [proposalID, userAddress]);
-    const userInfo = await getUser(userAddress);
+    const feedback = await proposalContract.callSmartContractGetFunc('getRating', [proposalID, citizenAddress])
+    const countComplaints = await proposalContract.callSmartContractGetFunc('countCitizenComments', [proposalID, citizenAddress]);
+    const citizenInfo = await getCitizen(citizenAddress);
     for (let i = 1; i <= parseInt(countComplaints); i++) {
-      let complaintInfo = await proposalContract.callSmartContractGetFunc('getUserComment', [proposalID, userAddress, i]);
-      complaints[complaintInfo.date] = { complainer: userInfo.name, description: complaintInfo.description, date: complaintInfo.date }
+      let complaintInfo = await proposalContract.callSmartContractGetFunc('getCitizenComment', [proposalID, citizenAddress, i]);
+      complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
     }
     return { success: true, ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, updatedAt: feedback.updatedAt }, complaintData: complaints };
   } catch (e) {
@@ -455,7 +455,7 @@ module.exports = {
   getProposalTemplate,
   proposalRating,
   proposalFeedback,
-  userFeedback,
+  citizenFeedback,
   getProposalDetails,
   getPathProposalsByPath,
   getProposalYaml
