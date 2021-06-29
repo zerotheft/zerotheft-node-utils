@@ -242,7 +242,7 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
     const citizenIdx = allCitizens.map(a => a.toLowerCase()).indexOf(storage.address.toLowerCase())
     //if yes then remove from the donor's list
     if (citizenIdx >= 0)
-      await holonContract.createTransaction('removeHolonCitizen', [holonAddress, citizenIdx])
+      await holonContract.createTransaction('removeHolonCitizen', [holonAddress, storage.address, citizenIdx])
 
     return { success: true, message: 'citizen removed  from the holon citizens list' }
   }
