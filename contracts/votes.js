@@ -3,14 +3,14 @@ const { get, remove, uniq } = require('lodash')
 const { getProposalContract, getVoterContract } = require('../utils/contract')
 const { convertStringToHash, convertToAscii } = require('../utils/web3')
 const { getProposalDetails } = require('./proposals')
-const { exportsDirNation, userSpecificVotesFile, proposalVotesFile, proposalArchiveVotesFile, proposalVotersFile, writeFile, voteDataRollupsFile } = require('../utils/common')
+const { exportsDirNation, citizenSpecificVotesFile, proposalVotesFile, proposalArchiveVotesFile, proposalVotersFile, writeFile, voteDataRollupsFile } = require('../utils/common')
 
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
-  let _voter = get(rollups.userSpecificVotes, (voteData.voter).toLowerCase(), {})
+  let _voter = get(rollups.citizenSpecificVotes, (voteData.voter).toLowerCase(), {})
   let _vote = get(_voter, (proposalInfo.path).toLowerCase(), (voteData.voteID).toLowerCase())
   _voter[(proposalInfo.path).toLowerCase()] = _vote.toLowerCase()
-  rollups.userSpecificVotes[(voteData.voter).toLowerCase()] = _voter
+  rollups.citizenSpecificVotes[(voteData.voter).toLowerCase()] = _voter
 
   // if prior Vote is present
   if (!voteData.voteReplaces.includes(convertToAscii(0))) {
@@ -39,23 +39,23 @@ const saveVoteRollupsData = async (voteData) => {
   if (!fs.existsSync(exportsDirNation)) {
     fs.mkdirSync(exportsDirNation, { recursive: true });
   }
-  if (voteData.userSpecificVotes) await writeFile(userSpecificVotesFile, voteData.userSpecificVotes)
+  if (voteData.citizenSpecificVotes) await writeFile(citizenSpecificVotesFile, voteData.citizenSpecificVotes)
   if (voteData.proposalVotes) await writeFile(proposalVotesFile, voteData.proposalVotes)
   if (voteData.proposalVoters) await writeFile(proposalVotersFile, voteData.proposalVoters)
   if (voteData.proposalArchiveVotes) await writeFile(proposalArchiveVotesFile, voteData.proposalArchiveVotes)
 }
 /*
-* Get user earlier vote to the proposal
+* Get citizen earlier vote to the proposal
 */
-const userPriorVote = async body => {
+const citizenPriorVote = async body => {
   const voterC = getVoterContract()
   const proposalC = getProposalContract()
   try {
-    if (!body.address) throw new Error('user address not present for prior vote')
+    if (!body.address) throw new Error('citizen address not present for prior vote')
 
-    let { userSpecificVotes } = await voteDataRollupsFile()
-    // let priorvoteID = await voterC.callSmartContractGetFunc('getUserSpecificVote', [body.address, convertStringToHash(body.url)])
-    let priorvoteID = (!isEmpty(userSpecificVotes) && userSpecificVotes[body.address]) ? get(userSpecificVotes[body.address], convertStringToHash(body.url), 0) : 0
+    let { citizenSpecificVotes } = await voteDataRollupsFile()
+    // let priorvoteID = await voterC.callSmartContractGetFunc('getCitizenSpecificVote', [body.address, convertStringToHash(body.url)])
+    let priorvoteID = (!isEmpty(citizenSpecificVotes) && citizenSpecificVotes[body.address]) ? get(citizenSpecificVotes[body.address], convertStringToHash(body.url), 0) : 0
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
     let proposalID = vote.voteIsTheft ? vote.yesTheftProposal : vote.noTheftProposal
@@ -64,7 +64,7 @@ const userPriorVote = async body => {
     return { success: true, id: priorvoteID, pid: proposal.id, ...vote }
   }
   catch (e) {
-    console.log('userPriorVote::', e.message)
+    console.log('citizenPriorVote::', e.message)
     return { success: false, error: e.message }
 
   }
@@ -87,13 +87,13 @@ const voteDataRollups = async body => {
     let proposalID = voteIsTheft ? yesTheftProposal : noTheftProposal
     const proposalInfo = await proposalC.callSmartContractGetFunc('getProposal', [proposalID])
 
-    let { userSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes } = await voteDataRollupsFile()
+    let { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes } = await voteDataRollupsFile()
 
     // keep the roll ups record in file
-    await updateVoteDataRollups({ userSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes }, { voter, voteID, proposalID, voteReplaces }, proposalInfo, voterC)
+    await updateVoteDataRollups({ citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes }, { voter, voteID, proposalID, voteReplaces }, proposalInfo, voterC)
 
     //save all the rollups
-    await saveVoteRollupsData({ userSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes })
+    await saveVoteRollupsData({ citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes })
 
     return { success: true, message: 'vote data rollups complete' }
   }
@@ -179,7 +179,7 @@ const getAllVoteIds = async () => {
   }
 }
 module.exports = {
-  userPriorVote,
+  citizenPriorVote,
   listVoteIds,
   getAllVoteIds,
   voteDataRollups,

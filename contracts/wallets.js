@@ -1,10 +1,10 @@
 const { addHolonDonor } = require('./holons')
 const { getWalletContract } = require('../utils/contract')
 
-/* get wallet information based on user address */
-const getWallet = async (user, walletContract) => {
+/* get wallet information based on citizen address */
+const getWallet = async (citizen, walletContract) => {
   try {
-    const walletInfo = await walletContract.callSmartContractGetFunc('getWallet', [user]);
+    const walletInfo = await walletContract.callSmartContractGetFunc('getWallet', [citizen]);
 
     return { success: true, walletInfo }
   } catch (e) {
@@ -19,7 +19,7 @@ const createWallet = async (balance, holonAddress, walletContract = null) => {
       walletContract.init()
     }
     await walletContract.createTransaction('createWallet', [balance, holonAddress])
-    // add user in holon donor list
+    // add citizen in holon donor list
     await addHolonDonor(holonAddress)
 
     return { success: true, message: 'wallet created successfully' };
@@ -29,21 +29,21 @@ const createWallet = async (balance, holonAddress, walletContract = null) => {
   }
 }
 
-const walletRecord = async (user, balance, holonAddress, walletContract = null) => {
+const walletRecord = async (citizen, balance, holonAddress, walletContract = null) => {
   try {
     if (!walletContract) {
       walletContract = getWalletContract()
       walletContract.init()
     }
-    const wallet = await getWallet(user, walletContract)
+    const wallet = await getWallet(citizen, walletContract)
     if (!wallet.success) {
       await walletContract.createTransaction('createWallet', [balance.toString(), holonAddress])
     } else {
       const newBalance = parseFloat(wallet.walletInfo.balance) + parseFloat(balance)
-      await walletContract.createTransaction('updateWallet', [newBalance.toString(), holonAddress, user])
-      await walletContract.createTransaction('addActivity', [balance.toString(), 'credit', holonAddress, user])
+      await walletContract.createTransaction('updateWallet', [newBalance.toString(), holonAddress, citizen])
+      await walletContract.createTransaction('addActivity', [balance.toString(), 'credit', holonAddress, citizen])
     }
-    // add user in holon donor list
+    // add citizen in holon donor list
     await addHolonDonor(holonAddress)
 
     return { success: true, message: 'wallet created successfully' };
@@ -54,13 +54,13 @@ const walletRecord = async (user, balance, holonAddress, walletContract = null) 
 }
 
 
-/* get wallet information based on user address */
-const walletActivities = async (user, wallet, walletContract) => {
+/* get wallet information based on citizen address */
+const walletActivities = async (citizen, wallet, walletContract) => {
   try {
     const transactionsCount = wallet.transactionsCount
     const activities = []
     for (let i = 1; i <= transactionsCount; i++) {
-      const activity = await walletContract.callSmartContractGetFunc('getActivities', [user, i]);
+      const activity = await walletContract.callSmartContractGetFunc('getActivities', [citizen, i]);
       activities.push(activity)
     }
     return { success: true, activities }
@@ -69,13 +69,13 @@ const walletActivities = async (user, wallet, walletContract) => {
   }
 }
 
-const holonWalletActivities = async (user, walletContract) => {
+const holonWalletActivities = async (citizen, walletContract) => {
   try {
-    const transactionsCount = await walletContract.callSmartContractGetFunc('getTotalHolonDonation', [user]);
+    const transactionsCount = await walletContract.callSmartContractGetFunc('getTotalHolonDonation', [citizen]);
     const futurePayouts = []
     const pastPayouts = []
     for (let i = 1; i <= transactionsCount; i++) {
-      const activity = await walletContract.callSmartContractGetFunc('getHolonActivity', [user, i]);
+      const activity = await walletContract.callSmartContractGetFunc('getHolonActivity', [citizen, i]);
       if (activity.transactionType === 'credit') {
         futurePayouts.push(activity)
       } else {

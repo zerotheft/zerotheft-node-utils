@@ -6,7 +6,7 @@ const yaml = require('js-yaml')
 const { getPathContract, getProposalContract, getVoterContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage');
-const { getUser } = require('./users')
+const { getCitizen } = require('./citizens')
 const { APP_PATH } = require('../config')
 const { getProposalDetails } = require('./proposals')
 const homedir = APP_PATH || require('os').homedir()
@@ -163,7 +163,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
           .process(async vid => {
             try {
               let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVote', [vid])
-              // let userInfo = await getUser(singleVoterInfo.voter)
+              // let citizenInfo = await getCitizen(singleVoterInfo.voter)
               return {
                 voterId: singleVoterInfo.voter,
                 voteId: vid,
