@@ -15,9 +15,9 @@ const grantRole = async (citizen, role) => {
         //  Assign roles to citizen address
         await permissionContract.createTransaction(`add${ROLES[role].alt}`, [citizen], 900000)
         //push roles in citizen roles list
-        await citizenContract.createTransaction('updateCitizenRole', [citizen, roleBytes], 900000)
+        // await citizenContract.createTransaction('updateCitizenRole', [citizen, roleBytes], 900000)
 
-        await citizenContract.callSmartContractGetFunc('getCitizenRoles', [citizen], 900000)
+        // await citizenContract.callSmartContractGetFunc('getCitizenRoles', [citizen], 900000)
       } catch (e) {
         throw (e)
       }
