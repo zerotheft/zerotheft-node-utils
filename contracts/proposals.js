@@ -8,7 +8,7 @@ const { getCitizen } = require('./citizens')
 const { APP_PATH } = require('../config')
 const { convertStringToHash } = require('../utils/web3')
 const { convertStringDollarToNumeric, abbreviateNumber } = require('../utils/helpers')
-const { getProposalContract, getVoterContract } = require('../utils/contract')
+const { getProposalContract, getFeedbackContract, getVoterContract } = require('../utils/contract')
 const { getGithubTemplate } = require('../utils/github')
 const { exportsDirNation, voteDataRollupsFile } = require('../utils/common')
 const homedir = APP_PATH || require('os').homedir()
@@ -202,13 +202,17 @@ const voteByHolon = async body => {
 const getProposalTemplate = path => {
   return getGithubTemplate(path)
 }
-/* get rating of proposal */
-const proposalRating = async (proposalContract, proposalID) => {
+/**
+ * Get the rating information of a particular proposal
+ * @param {object} feedbackContract - instance of a feedback contract
+ * @param {string} proposalID - address of a proposal
+ * @returns json object with proposal rating information
+ */const proposalRating = async (feedbackContract, proposalID) => {
   try {
-    const feedbackers = await proposalContract.callSmartContractGetFunc('totalRaters', [proposalID])
+    const feedbackers = await feedbackContract.callSmartContractGetFunc('totalProposalRaters', [proposalID])
 
     let ratingPromises = feedbackers.map(async (feedbacker) => {
-      const feedback = await proposalContract.callSmartContractGetFunc('getRating', [proposalID, feedbacker])
+      const feedback = await feedbackContract.callSmartContractGetFunc('getProposalRating', [proposalID, feedbacker])
       return parseInt(feedback.rating)
     })
     const allRatings = await Promise.all(ratingPromises)
@@ -218,16 +222,21 @@ const proposalRating = async (proposalContract, proposalID) => {
   }
 }
 
-/* get complaints of proposal */
-const proposalComplaints = async (proposalContract, proposalID) => {
+/**
+ * Get Proposal comments provided by citizen
+ * @param {object} feedbackContract - feeback contract instance
+ * @param {string} proposalID - address of a proposal
+ * @returns proposal comments data as JSON
+ */
+const proposalComplaints = async (feedbackContract, proposalID) => {
   try {
     let complaints = {}
-    const complainers = await proposalContract.callSmartContractGetFunc('totalComplainers', [proposalID])
+    const complainers = await feedbackContract.callSmartContractGetFunc('totalProposalCommentors', [proposalID])
     let complaintPromises = complainers.map(async (complainer) => {
-      const countComplaints = await proposalContract.callSmartContractGetFunc('countCitizenComments', [proposalID, complainer]);
+      const countComplaints = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [proposalID, complainer]);
       const citizenInfo = await getCitizen(complainer);
       for (let i = 1; i <= parseInt(countComplaints); i++) {
-        let complaintInfo = await proposalContract.callSmartContractGetFunc('getCitizenComment', [proposalID, complainer, i]);
+        let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [proposalID, complainer, i]);
         complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
       }
     })
@@ -238,32 +247,43 @@ const proposalComplaints = async (proposalContract, proposalID) => {
     return { success: false, error: e.message }
   }
 }
-
-const proposalFeedback = async (proposalID, proposalContract = null) => {
-  if (!proposalContract) {
-    proposalContract = getProposalContract()
-    proposalContract.init()
+/**
+ * Get proposal feedback(both rating and comments)
+ * @param {string} proposalID - address of a proposal
+ * @param {object} feedbackContract - instance of a feedback contract
+ * @returns proposal ratings and comments data as JSON
+ */
+const proposalFeedback = async (proposalID, feedbackContract = null) => {
+  if (!feedbackContract) {
+    feedbackContract = getFeedbackContract()
+    feedbackContract.init()
   }
-  const ratingData = await proposalRating(proposalContract, proposalID);
-  const complaintData = await proposalComplaints(proposalContract, proposalID);
-  if (!ratingData.success || !complaintData.success) {
-    return { success: false, error: ratingData.error || complaintData.error };
+  const ratingData = await proposalRating(feedbackContract, proposalID);
+  const commentData = await proposalComplaints(feedbackContract, proposalID);
+  if (!ratingData.success || !commentData.success) {
+    return { success: false, error: ratingData.error || commentData.error };
   }
-  return { success: true, ratingData, complaintData };
+  return { success: true, ratingData, commentData };
 }
-
-const citizenFeedback = async (proposalID, citizenAddress, proposalContract = null) => {
+/**
+ * Get individual citizen's feedback on a specific Proposal
+ * @param {string} proposalID - address of a proposal
+ * @param {string} citizenAddress - address of a citizen
+ * @param {object} feedbackContract - instance of a feedback contract
+ * @returns rating and comments passed by specific citizen
+ */
+const citizenFeedback = async (proposalID, citizenAddress, feedbackContract = null) => {
   try {
-    if (!proposalContract) {
-      proposalContract = getProposalContract()
-      proposalContract.init()
+    if (!feedbackContract) {
+      feedbackContract = getFeedbackContract()
+      feedbackContract.init()
     }
     const complaints = {}
-    const feedback = await proposalContract.callSmartContractGetFunc('getRating', [proposalID, citizenAddress])
-    const countComplaints = await proposalContract.callSmartContractGetFunc('countCitizenComments', [proposalID, citizenAddress]);
+    const feedback = await feedbackContract.callSmartContractGetFunc('getProposalRating', [proposalID, citizenAddress])
+    const countComplaints = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [proposalID, citizenAddress]);
     const citizenInfo = await getCitizen(citizenAddress);
     for (let i = 1; i <= parseInt(countComplaints); i++) {
-      let complaintInfo = await proposalContract.callSmartContractGetFunc('getCitizenComment', [proposalID, citizenAddress, i]);
+      let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [proposalID, citizenAddress, i]);
       complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
     }
     return { success: true, ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, updatedAt: feedback.updatedAt }, complaintData: complaints };

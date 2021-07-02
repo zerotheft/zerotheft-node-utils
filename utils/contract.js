@@ -8,6 +8,7 @@ const getVerifiedCitizenContract = () => getContract('ZTMVerifiedCitizens')
 const getPathContract = () => getContract('ZTMPaths')
 const getHolonContract = () => getContract('ZTMHolons')
 const getWalletContract = () => getContract('ZTMWallets')
+const getFeedbackContract = () => getContract('ZTMFeedbacks')
 
 const getContract = contractName => new Web3(contractName)
 
@@ -19,5 +20,6 @@ module.exports = {
   getVerifiedCitizenContract,
   getPathContract,
   getHolonContract,
-  getWalletContract
+  getWalletContract,
+  getFeedbackContract,
 }
