@@ -102,7 +102,7 @@ if (ENV_MODE === undefined) {
   updateEnvValue({ "MODE": MODE || "staging" })
 }
 
-const updateStorageValues = (address, key, currentUser, otherValues, type = 'regular') => updateValues(type === 'regular' ? pathName : proxyData, { address, key, keybaseUser: currentUser, ...otherValues }, undefined, undefined, 'proxy')
+const updateStorageValues = (address, key, currentCitizen, otherValues, type = 'regular') => updateValues(type === 'regular' ? pathName : proxyData, { address, key, keybaseCitizen: currentCitizen, ...otherValues }, undefined, undefined, 'proxy')
 const updateVoterId = voterId => updateValues(pathName, { voterId: voterId })
 const getAppValues = () => getValues(appPathName)
 const updateAppValues = values => updateValues(appPathName, values)

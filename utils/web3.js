@@ -51,7 +51,7 @@ const decryptEthAddress = obj => {
 }
 
 /**
- * Runs smart contract for the user
+ * Runs smart contract for the citizen
  * @param contract: Contents of json file
  * @param methodName: method of a contract that you want to call
  * @param args: arguments required in smart contract(Pass it in the form of array)

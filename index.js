@@ -11,7 +11,7 @@ const helpers = require('./utils/helpers')
 const paths = require('./contracts/paths')
 const issues = require('./contracts/issues')
 const proposals = require('./contracts/proposals')
-const users = require('./contracts/users')
+const citizens = require('./contracts/citizens')
 const holons = require('./contracts/holons')
 const wallets = require('./contracts/wallets')
 
@@ -26,7 +26,7 @@ module.exports = {
     paths,
     issues,
     proposals,
-    users,
+    citizens,
     encryptor,
     helpers,
     holons,
