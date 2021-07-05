@@ -24,9 +24,6 @@ const isURL = (str) => {
 }
 
 const ROLES = {
-  "superadmin": { name: "ZT_SUPERADMIN", alt: "SuperAdmin" },
-  "admin": { name: "ZT_ADMIN", alt: "Admin" },
-  "holonadmin": { name: "ZT_HOLONADMIN", alt: "HolonAdmin" },
   "holonowner": { name: "ZT_HOLONOWNER", alt: "HolonOwner" }
 }
 
