@@ -14,7 +14,13 @@ const getCitizen = async (address, citizenContract = null) => {
       middleName: citizen.middleName,
       lastName: citizen.lastName,
       country: citizenExtra.country,
+      citizenship: citizenExtra.citizenship,
+      currentState: citizenExtra.currentState,
+      currentCity: citizenExtra.currentCity,
+      currentZip: citizenExtra.currentZip,
+      version: citizenExtra.version,
       linkedin: citizen.linkedin,
+      createdAt: citizenExtra.citizenCreatedDate,
     }
   } catch (e) {
     return { success: false, error: e.message }
