@@ -6,7 +6,7 @@ const yaml = require('js-yaml')
 const { getPathContract, getProposalContract, getVoterContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage');
-const { getUser } = require('./users')
+const { getCitizen } = require('./citizens')
 const { APP_PATH } = require('../config')
 const { getProposalDetails } = require('./proposals')
 const homedir = APP_PATH || require('os').homedir()
@@ -55,7 +55,7 @@ const allNations = async () => {
 
 const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
   Object.keys(path).map((key) => {
-    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name'].includes(key)) return
+    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version'].includes(key)) return
     Object.keys(path).forEach((item) => {
       if (paths.indexOf(item) > 0)
         paths.length = paths.indexOf(item)
@@ -95,20 +95,18 @@ const getUmbrellaPaths = async (nation = 'USA') => {
   try {
     const pathData = await pathsByNation(nation)
     const paths = pathData[nation]
-    let umbrellas = []
+    let umbrellas = {}
     const traversePath = async (pathNode, path = '') => {
       for (let enode of Object.keys(pathNode)) {
-        if (['display_name', 'leaf', 'umbrella', 'parent'].includes(enode)) {
+        if (enode === "metadata" && pathNode[enode]['umbrella']) {
+          umbrellas[path.toString()] = {
+            "value_parent": pathNode[enode]["value_parent"]
+          }
+        }
+        let newPath = path ? `${path}/${enode}` : enode
+        if (['display_name', 'leaf', 'umbrella', 'parent', 'metadata'].includes(enode)) {
           continue
         }
-        // console.log('isUmbrella', enode)
-        // console.log('isumb', pathNode[enode]['umbrella'])
-        let newPath = path ? `${path}/${enode}` : enode
-        if (pathNode[enode]['umbrella']) {
-          umbrellas.push(newPath)
-        }
-        // console.log('next', pathNode[enode], newPath)
-
         traversePath(pathNode[enode], newPath)
       }
       return umbrellas
@@ -116,6 +114,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
     traversePath(paths)
 
     updateUmbrellaPaths({ paths: umbrellas })
+
     return umbrellas
   } catch (e) {
     throw new Error(`getUmbrellaPaths:: ${e.message}`)
@@ -124,7 +123,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
 /*
 * Return all the information of path including proposals and votes
 */
-const getPathDetail = async (path, year, proposalContract = null, voterContract = null, withInfo) => {
+const getPathDetail = async (path, proposalContract = null, voterContract = null, withInfo) => {
   let allVotesInfo = []
   try {
     if (!proposalContract) {
@@ -133,12 +132,14 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
     if (!voterContract) {
       voterContract = getVoterContract()
     }
-    const proposalIds = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
-    if (proposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
+    let count = 0;
+    let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path)])
+    if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
     let { results: pathDetails, errors } = await PromisePool
       .withConcurrency(10)
-      .for(proposalIds)
+      .for(propIds)
       .process(async id => {
+        count++;
         let proposal
         try {
           proposal = await getProposalDetails(id, proposalContract, voterContract)
@@ -149,7 +150,7 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
         }
 
         //get rid of un-necessary  keys
-        ['detail', 'ratings', 'complaints', 'description'].forEach(e => delete proposal[e]);
+        ['detail', 'ratings', 'complaints', 'description', 'proposal_hash'].forEach(e => delete proposal[e]);
 
         if (!withInfo) {
           // pathDetails.push(proposal)
@@ -161,26 +162,25 @@ const getPathDetail = async (path, year, proposalContract = null, voterContract 
           .for(proposal.votes)
           .process(async vid => {
             try {
-              let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVotes', [parseInt(vid)])
-              // let userInfo = await getUser(singleVoterInfo.voter)
+              let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVote', [vid])
+              // let citizenInfo = await getCitizen(singleVoterInfo.voter)
               return {
                 voterId: singleVoterInfo.voter,
                 voteId: vid,
-                voteType: singleVoterInfo.voteType,
-                altTheftAmt: singleVoterInfo.altTheftAmt,
-                votedDate: new Date(singleVoterInfo.date * 1000),
+                voteType: singleVoterInfo.voteIsTheft,
+                altTheftAmt: singleVoterInfo.customTheftAmount === "" ? {} : JSON.parse(singleVoterInfo.customTheftAmount),
                 path: path.split('/').slice(1).join('/'),
                 proposalId: id,
-                year: proposal.year
+                votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y))
               }
             }
             catch (e) {
-              console.log('getPathDetail(getVotes)', e)
+              console.log('getPathDetail(getVote)', e)
               return null
             }
           })
         allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal ${id} detail fetched(year ${year})`)
+        console.log(`Proposal: ${path} :: ${count} :: ${id} detail fetched`)
 
         return {
           ...proposal,

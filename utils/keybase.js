@@ -1,16 +1,16 @@
 const exec = require('child_process').exec
 const { fetch } = require('./api')
 
-const getCurrentUser = async (cb) => {
+const getCurrentCitizen = async (cb) => {
   return new Promise((resolve, reject) => {
-    let user
+    let citizen
     exec('keybase whoami', (err, stdout, stderr) => {
       if (err || stderr || !stdout) {
         reject()
         return
       }
-      user = Buffer.from(stdout).toString('utf8').replace(/(\r\n|\n|\r)/gm, '')
-      resolve(user)
+      citizen = Buffer.from(stdout).toString('utf8').replace(/(\r\n|\n|\r)/gm, '')
+      resolve(citizen)
     })
   })
 }
@@ -26,40 +26,40 @@ const areKeysSet = () => {
   })
 }
 
-const isLoggedIntoKeybase = async user => {
-  const currentUser = await getCurrentUser()
-  return user === currentUser
+const isLoggedIntoKeybase = async citizen => {
+  const currentCitizen = await getCurrentCitizen()
+  return citizen === currentCitizen
 }
 
-const hasProofInGithub = async keybaseUser => {
+const hasProofInGithub = async keybaseCitizen => {
   try {
-    const userName = keybaseUser || await getCurrentUser()
+    const citizenName = keybaseCitizen || await getCurrentCitizen()
 
-    const user = await fetchUserFromKeybase(userName)
-    const proofs = user.proofs_summary.all
+    const citizen = await fetchCitizenFromKeybase(citizenName)
+    const proofs = citizen.proofs_summary.all
     const githubProof = proofs.find(i => i.proof_type === 'github')
-    if(githubProof) {
+    if (githubProof) {
       console.log('is verified', true)
       return true
     }
     console.log('not verified')
     return false
-  } catch(e) {
+  } catch (e) {
     return false
   }
 }
 
-const fetchUserFromKeybase = async user => {
+const fetchCitizenFromKeybase = async citizen => {
   try {
-    const data = await fetch(`https://keybase.io/_/api/1.0/user/lookup.json?usernames=${user}`)
+    const data = await fetch(`https://keybase.io/_/api/1.0/citizen/lookup.json?citizennames=${citizen}`)
     return data.them[0]
-  }catch(e) {
+  } catch (e) {
     return {}
   }
 }
 
 module.exports = {
-  getCurrentUser,
+  getCurrentCitizen,
   areKeysSet,
   isLoggedIntoKeybase,
   hasProofInGithub

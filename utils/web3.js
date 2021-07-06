@@ -51,7 +51,7 @@ const decryptEthAddress = obj => {
 }
 
 /**
- * Runs smart contract for the user
+ * Runs smart contract for the citizen
  * @param contract: Contents of json file
  * @param methodName: method of a contract that you want to call
  * @param args: arguments required in smart contract(Pass it in the form of array)
@@ -137,7 +137,6 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     // const pend = await web3.eth.getTransactionCount(address, 'pending')
     let customCommon = {}
     const txCount = await web3.eth.getTransactionCount(address)
-    // console.log(pend, txCount)
     let txArgs = {
       "chain": config.network
     }
@@ -154,7 +153,6 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
         gasPrice: web3.utils.toHex(web3.utils.toWei((GAS_PRICE || "1").toString(), 'gwei'))
       }, ...obj
     }
-    // console.log(txObject)
     let networkId, chainId;
 
     if (networkType !== 'eth' && (config.network === "kotti" || config.network === "mainnet")) {
@@ -209,6 +207,12 @@ const convertStringToHash = (item) => {
   return val
 }
 
+const convertToAscii = (item) => {
+  const web3 = initiateWeb3()
+  const val = web3.utils.asciiToHex(item)
+  return val
+}
+
 module.exports = {
   createAccount,
   importByPrivateKey,
@@ -221,5 +225,6 @@ module.exports = {
   convertStringToBytes,
   convertStringToHash,
   carryTransaction,
-  createMockAccount
+  createMockAccount,
+  convertToAscii
 }
