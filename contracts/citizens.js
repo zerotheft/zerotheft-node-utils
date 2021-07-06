@@ -7,6 +7,7 @@ const getCitizen = async (address, citizenContract = null) => {
   try {
     const citizen = await citizenContract.callSmartContractGetFunc('getCitizen', [address])
     const citizenExtra = await citizenContract.callSmartContractGetFunc('getCitienExtraData', [address])
+
     return {
       success: true,
       name: `${citizen.firstName} ${citizen.middleName} ${citizen.lastName}`,
@@ -14,13 +15,13 @@ const getCitizen = async (address, citizenContract = null) => {
       middleName: citizen.middleName,
       lastName: citizen.lastName,
       country: citizenExtra.country,
-      citizenship: citizenExtra.citizenship,
+      citizenship: citizen.citizenship,
       currentState: citizenExtra.currentState,
       currentCity: citizenExtra.currentCity,
       currentZip: citizenExtra.currentZip,
       version: citizenExtra.version,
       linkedin: citizen.linkedin,
-      createdAt: citizenExtra.citizenCreatedDate,
+      createdAt: citizenExtra.createdAt,
     }
   } catch (e) {
     return { success: false, error: e.message }
