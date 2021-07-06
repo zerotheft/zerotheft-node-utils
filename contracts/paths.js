@@ -153,7 +153,6 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
 
         //get rid of un-necessary  keys
         ['detail', 'ratings', 'complaints', 'description', 'proposal_hash'].forEach(e => delete proposal[e]);
-
         if (!withInfo) {
           // pathDetails.push(proposal)
           return proposal
@@ -182,7 +181,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
             }
           })
         allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal: ${path} :: ${count} :: ${id} detail fetched`)
+        console.log(`Proposal: ${path} ::  ${id} detail fetched`)
 
         return {
           ...proposal,

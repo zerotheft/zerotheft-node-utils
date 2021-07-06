@@ -106,7 +106,7 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
   const filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
 
   if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
-    const proposalYaml = await proposalC.callSmartContractGetFunc('getProposalYaml', [proposal.yamlBlock])
+    const proposalYaml = await proposalContract.callSmartContractGetFunc('getProposalYaml', [proposal.yamlBlock])
     let outputFiles = await fetchProposalYaml(proposalContract, proposalYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, filePath)
   }
@@ -126,7 +126,7 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
   return {
     id: proposalId,
     theftAmt,
-    votes: !isEmpty(proposalVotes) ? get(proposalVotes, proposalId.toLowerCase(), []) : [],
+    votes: !isEmpty(proposalVotes) ? get(proposalVotes, proposalKey, []) : [],
     detail: file || {},
     proposal_hash: proposal.yamlBlock,
     date: new Date(proposal.date * 1000),
@@ -145,7 +145,8 @@ const getProposals = async (proposalIDs, proposalContract = null) => {
     proposalContract.init()
   }
   const promises = proposalIDs.map(async (proposalID) => {
-    const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [proposalID])
+    const proposalKey = `ZTMProposal:${proposalID}`
+    const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [proposalKey])
     const votesContract = getVoterContract()
     votesContract.init()
     // const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalID])
@@ -155,7 +156,7 @@ const getProposals = async (proposalIDs, proposalContract = null) => {
       "id": proposalID,
       "owner": proposalDetail[0],
       "summary": proposalDetail[1],
-      "votes": !isEmpty(proposalVotes) ? get(proposalVotes, proposalID.toLowerCase(), []) : [],
+      "votes": !isEmpty(proposalVotes) ? get(proposalVotes, proposalKey, []) : [],
       "proposal_hash": proposalDetail[3],
       "created_at": proposalDetail[4]
     }
@@ -308,7 +309,6 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
     cachedFiles = fs.readdirSync(cachedProposalDir);
   }
 
-  // let { propIds, counterPropIds } = await proposalC.callSmartContractGetFunc('proposalsPerPathYear', [pathHash, year])
   let { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash])
   let { results, errors } = await PromisePool
     .withConcurrency(1)
@@ -328,7 +328,7 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
         }
         return {
           ...pData.proposal,
-          votes: !isEmpty(proposalVotes) ? get(proposalVotes, pid.toLowerCase(), []).length : 0,
+          votes: !isEmpty(proposalVotes) ? get(proposalVotes, `ZTMProposal:${pid}`, []).length : 0,
           ratings,
           complaints
         }
@@ -406,7 +406,7 @@ const getProposalYaml = async (proposalId, path, contract) => {
  */
 const getYamlFromCacheOrSmartContract = async (proposalId, path, contract, cachedYamls) => {
   let yamlJSON, filePath
-  const proposalKey = `ZTMProposal:${proposalId.toString()}`
+  const proposalKey = `ZTMProposal:${proposalId}`
   const proposalC = contract || getProposalContract()
   const proposal = await proposalC.callSmartContractGetFunc('getProposal', [proposalKey])
   //check if proposal Yaml is in cache
