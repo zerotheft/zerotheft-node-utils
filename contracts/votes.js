@@ -59,7 +59,7 @@ const citizenPriorVote = async body => {
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
     let proposalID = vote.voteIsTheft ? vote.yesTheftProposal : vote.noTheftProposal
-    const proposal = await getProposalDetails(proposalID, proposalC, voterC)
+    const proposal = await getProposalDetails(proposalID, proposalC)
 
     return { success: true, id: priorvoteID, pid: proposal.id, ...vote }
   }

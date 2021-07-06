@@ -83,6 +83,7 @@ const pathsByNation = async (nation = 'USA') => {
   const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
   if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
     const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
+    console.log(hierarchyYaml)
     outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, pathDir)
   }
@@ -143,7 +144,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
         count++;
         let proposal
         try {
-          proposal = await getProposalDetails(id, proposalContract, voterContract)
+          proposal = await getProposalDetails(id, proposalContract)
         }
         catch (e) {
           console.log('getPathDetail Error::', id, e)
