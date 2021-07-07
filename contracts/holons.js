@@ -29,17 +29,16 @@ const getHolons = async (type = 'array', holonHandler = null) => {
   let holonObj = {}
   if (holonIds) {
     for (const holonId of holonIds) {
-      const holonDetails = await holonHandler.callSmartContractGetFunc('getHolon', [holonId]);
-      const holonInfo = JSON.parse(holonDetails.details)
+      const holonKey = `ZTMHolon:${holonId}`
+      const holonInfo = await holonHandler.callSmartContractGetFunc('getHolon', [holonKey]);
 
       if (Object.keys(holonInfo).length > 0) {
         let objParms = {
-          name: holonInfo.name || "",
-          url: holonInfo.url,
-          health: holonDetails.status,
-          country: holonInfo.country,
-          address: holonId,
-          proxyAddr: holonDetails.proxyAddr
+          name: holonInfo.holonName || "",
+          url: holonInfo.holonURL,
+          health: holonInfo.status,
+          owner: holonInfo.owner,
+          donationAddress: holonInfo.donationAddress,
         }
         type === 'array' ? holonList.push(objParms) :
           holonObj[holonId] = objParms
