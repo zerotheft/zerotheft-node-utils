@@ -20,18 +20,18 @@ const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) =>
     remove(_priorPVotes, (_v) => {
       return (_v).toLowerCase() === (voteData.voteReplaces).toLowerCase()
     })
-    let _pArchiveVotes = get(rollups.proposalArchiveVotes, (voteData.proposalID).toLowerCase(), [])
+    let _pArchiveVotes = get(rollups.proposalArchiveVotes, (voteData.proposalID), [])
     _pArchiveVotes.push((voteData.voteReplaces).toLowerCase())
-    rollups.proposalArchiveVotes[(voteData.proposalID).toLowerCase()] = uniq(_pArchiveVotes)
+    rollups.proposalArchiveVotes[(voteData.proposalID)] = uniq(_pArchiveVotes)
   }
 
-  let _pvotes = get(rollups.proposalVotes, (voteData.proposalID).toLowerCase(), [])
+  let _pvotes = get(rollups.proposalVotes, (voteData.proposalID), [])
   _pvotes.push((voteData.voteID).toLowerCase())
-  rollups.proposalVotes[(voteData.proposalID).toLowerCase()] = uniq(_pvotes)
+  rollups.proposalVotes[(voteData.proposalID)] = uniq(_pvotes)
 
-  let _pvoters = get(rollups.proposalVoters, (voteData.proposalID).toLowerCase(), [])
+  let _pvoters = get(rollups.proposalVoters, (voteData.proposalID), [])
   _pvoters.push((voteData.voter).toLowerCase())
-  rollups.proposalVoters[(voteData.proposalID).toLowerCase()] = uniq(_pvoters)
+  rollups.proposalVoters[(voteData.proposalID)] = uniq(_pvoters)
 }
 
 //save vote roll ups date
@@ -59,7 +59,7 @@ const citizenPriorVote = async body => {
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
     let proposalID = vote.voteIsTheft ? vote.yesTheftProposal : vote.noTheftProposal
-    const proposal = await getProposalDetails(proposalID, proposalC, voterC)
+    const proposal = await getProposalDetails(proposalID, proposalC)
 
     return { success: true, id: priorvoteID, pid: proposal.id, ...vote }
   }

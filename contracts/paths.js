@@ -17,35 +17,35 @@ if (!fs.existsSync(pathYamlDir)) {
 }
 
 const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) => {
-  const yamlBlock = await contract.callSmartContractGetFunc('getPathYaml', [yamlBlockHash], 900000)
+  const yamlBlock = await contract.callSmartContractGetFunc('getEconomicHierarchyYamlBlock', [yamlBlockHash], 900000)
   const outpuFileName = `${pathYamlDir}/output-${index}`;
   fs.writeFileSync(outpuFileName, yamlBlock.content, 'utf-8');
 
   allOutputs.push(outpuFileName)
 
-  if (!yamlBlock[4]) {
-    await fetchPathYaml(yamlBlock[1], index + 1, allOutputs)
+  if (yamlBlock.nextYamlBlock !== "") {
+    await fetchPathYaml(yamlBlock.nextYamlBlock, index + 1, allOutputs)
   }
   return allOutputs
 }
 
 const allNations = async () => {
   const contract = getPathContract()
-  const nationHashes = await contract.callSmartContractGetFunc('allNations')
-
-  return Promise.all(nationHashes.map(async hash => {
+  const nations = ['USA']
+  return Promise.all(nations.map(async nation => {
     //fetch path yaml chunks based on nation hash
-    const path = await contract.callSmartContractGetFunc('getPath', [hash])
-    const pathDir = `${pathYamlDir}/${path.nation}-hierarchy-v${path.version}.yaml`;
+    const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [])
+    const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
     if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
-      outputFiles = await fetchPathYaml(contract, path.yamlBlock, 1)
+      const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
+      outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
       await splitFile.mergeFiles(outputFiles, pathDir)
     }
     pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
 
     return {
       pathRoot: path.pathRoot,
-      nation: path.nation,
+      nation,
       hierarchy: pathYamlContent,
       version: path.version,
       pathCrumbs: makePathCrumbs(pathYamlContent)
@@ -79,10 +79,12 @@ const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
 */
 const pathsByNation = async (nation = 'USA') => {
   const contract = getPathContract()
-  const path = await contract.callSmartContractGetFunc('getPath', [convertStringToHash(nation)])
-  const pathDir = `${pathYamlDir}/${path.nation}-hierarchy-v${path.version}.yaml`;
+  const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [])
+  const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
   if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
-    outputFiles = await fetchPathYaml(contract, path.yamlBlock, 1)
+    const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
+    console.log(hierarchyYaml)
+    outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, pathDir)
   }
   pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
@@ -142,7 +144,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
         count++;
         let proposal
         try {
-          proposal = await getProposalDetails(id, proposalContract, voterContract)
+          proposal = await getProposalDetails(id, proposalContract)
         }
         catch (e) {
           console.log('getPathDetail Error::', id, e)
@@ -151,7 +153,6 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
 
         //get rid of un-necessary  keys
         ['detail', 'ratings', 'complaints', 'description', 'proposal_hash'].forEach(e => delete proposal[e]);
-
         if (!withInfo) {
           // pathDetails.push(proposal)
           return proposal
@@ -180,7 +181,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
             }
           })
         allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal: ${path} :: ${count} :: ${id} detail fetched`)
+        console.log(`Proposal: ${path} ::  ${id} detail fetched`)
 
         return {
           ...proposal,
