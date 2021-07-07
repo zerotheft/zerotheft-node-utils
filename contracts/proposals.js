@@ -109,6 +109,8 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
     const proposalYaml = await proposalContract.callSmartContractGetFunc('getProposalYaml', [proposal.yamlBlock])
     let outputFiles = await fetchProposalYaml(proposalContract, proposalYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, filePath)
+    outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
+
   }
 
 
@@ -121,8 +123,8 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
   const feedbacks = await proposalFeedback(proposalId, proposalContract)
   const ratings = get(feedbacks, 'ratingData', 0)
   const complaints = get(feedbacks, 'complaintData', 0)
-  // if (fs.existsSync(filePath))
-  //   fs.unlinkSync(filePath)
+  if (fs.existsSync(filePath))
+    fs.unlinkSync(filePath)
   return {
     id: proposalId,
     theftAmt,
@@ -438,6 +440,8 @@ const getYamlFromCacheOrSmartContract = async (proposalId, path, contract, cache
   }
 
   yamlJSON = yaml.load(fs.readFileSync(filePath, 'utf-8'))
+  if (fs.existsSync(filePath))
+    fs.unlinkSync(filePath)
   return { proposal, yamlJSON }
 }
 
