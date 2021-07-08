@@ -3,7 +3,7 @@ const PromisePool = require('@supercharge/promise-pool')
 const dir = require('path')
 const splitFile = require('split-file');
 const yaml = require('js-yaml')
-const { getPathContract, getProposalContract, getVoterContract } = require('../utils/contract')
+const { getPathContract, getProposalContract, getVoteContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage');
 const { getCitizen } = require('./citizens')
@@ -131,7 +131,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
       proposalContract = getProposalContract()
     }
     if (!voterContract) {
-      voterContract = getVoterContract()
+      voterContract = getVoteContract()
     }
     let count = 0;
     let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path)])
@@ -140,6 +140,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
       .withConcurrency(10)
       .for(propIds)
       .process(async id => {
+        id = `ZTMProposal:${id}`
         count++;
         let proposal
         try {

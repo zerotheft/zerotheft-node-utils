@@ -1,6 +1,6 @@
 const fs = require('fs')
 const { get, remove, uniq } = require('lodash')
-const { getProposalContract, getVoterContract } = require('../utils/contract')
+const { getProposalContract, getVoteContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { getProposalDetails } = require('./proposals')
 const { exportsDirNation, citizenSpecificVotesFile, proposalVotesFile, proposalArchiveVotesFile, proposalVotersFile, writeFile, voteDataRollupsFile } = require('../utils/common')
@@ -48,7 +48,7 @@ const saveVoteRollupsData = async (voteData) => {
 * Get citizen earlier vote to the proposal
 */
 const citizenPriorVote = async body => {
-  const voterC = getVoterContract()
+  const voterC = getVoteContract()
   const proposalC = getProposalContract()
   try {
     if (!body.address) throw new Error('citizen address not present for prior vote')
@@ -56,10 +56,8 @@ const citizenPriorVote = async body => {
     let { citizenSpecificVotes } = await voteDataRollupsFile()
     // let priorvoteID = await voterC.callSmartContractGetFunc('getCitizenSpecificVote', [body.address, convertStringToHash(body.url)])
     let priorvoteID = (!isEmpty(citizenSpecificVotes) && citizenSpecificVotes[body.address]) ? get(citizenSpecificVotes[body.address], convertStringToHash(body.url), 0) : 0
-    console.log("========>", priorvoteID)
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
-    console.log(vote)
     let proposalID = vote.voteIsTheft ? vote.yesTheftProposal : vote.noTheftProposal
     const proposal = await getProposalDetails(proposalID, proposalC)
 
@@ -78,7 +76,7 @@ const citizenPriorVote = async body => {
  * @returns Json object with success or failure message
  */
 const voteDataRollups = async body => {
-  const voterC = getVoterContract()
+  const voterC = getVoteContract()
   const proposalC = getProposalContract()
   try {
     const voteIndex = body.voteIndex
@@ -111,7 +109,7 @@ const voteDataRollups = async body => {
 */
 const listVoteIds = async (contract = null) => {
   if (!contract) {
-    contract = getVoterContract()
+    contract = getVoteContract()
   }
   let cursor = 0;
   let howMany = 1000; // Get thousands at a time
@@ -133,7 +131,7 @@ const listVoteIds = async (contract = null) => {
 * Get all votes
 */
 const getAllVoteIds = async () => {
-  const contract = getVoterContract()
+  const contract = getVoteContract()
   try {
     let allVoteIds = await listVoteIds(contract)
     // allVoteIds=
