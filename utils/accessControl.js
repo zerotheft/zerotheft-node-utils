@@ -27,25 +27,28 @@ const grantRole = async (citizen, role) => {
   }
 }
 
+
 const revokeRole = async (citizen, role) => {
   try {
     const permissionContract = getPermissionContract()
-    const citizenContract = getCitizenContract()
+    // const citizenContract = getCitizenContract()
 
-    let citizenRoles = await citizenContract.callSmartContractGetFunc('getCitizenRoles', [citizen], 900000)
+    // let citizenRoles = await citizenContract.callSmartContractGetFunc('getCitizenRoles', [citizen], 900000)
 
     //  Remove citizen role
     await permissionContract.createTransaction(`remove${ROLES[role].alt}`, [citizen], 900000)
+    // await permissionContract.createTransaction(`removeHolonOwner`, [citizen], 900000)
 
-    //pop roles from citizen roles list
-    let roleIndex = citizenRoles.map(u => u.toLowerCase()).indexOf(convertStringToHash(ROLES[role].name))
-    if (roleIndex > -1) {
-      await citizenContract.createTransaction('removeCitizenRole', [roleIndex, citizen], 900000)
-    }
+    // //pop roles from citizen roles list
+    // let roleIndex = citizenRoles.map(u => u.toLowerCase()).indexOf(convertStringToHash(ROLES[role].name))
+    // if (roleIndex > -1) {
+    //   await citizenContract.createTransaction('removeCitizenRole', [roleIndex, citizen], 900000)
+    // }
   } catch (e) {
-    throw (e)
+    error(chalk.red(e || 'There were some errors while performing action'), true)
   }
 }
+
 
 const transferHolonOwner = async (citizen) => {
   try {

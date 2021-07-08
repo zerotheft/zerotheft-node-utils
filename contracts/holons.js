@@ -7,19 +7,18 @@ const { getStorageValues } = require('../utils/storage')
 const getHolon = async (holonContract, holonID) => {
   try {
     const holonInfo = await holonContract.callSmartContractGetFunc('getHolon', [holonID]);
-    const holonDetails = JSON.parse(holonInfo.details)
     const holonData = {
-      url: holonDetails.name || holonDetails.url,
+      name: holonInfo.holonName,
+      url: holonInfo.holonURL,
       health: holonInfo.status,
-      countryCode: holonDetails.country,
-      proxyAddr: holonInfo.proxyAddr
+      donationAddress: holonInfo.donationAddress,
     };
     return { success: true, holonData }
   } catch (e) {
     return { success: false, error: e.message }
   }
 }
-/* Return ALL Holon Services available */
+/* Return all Holon Services available */
 const getHolons = async (type = 'array', holonHandler = null) => {
   if (holonHandler === null) {
     holonHandler = await getHolonContract();
@@ -29,17 +28,16 @@ const getHolons = async (type = 'array', holonHandler = null) => {
   let holonObj = {}
   if (holonIds) {
     for (const holonId of holonIds) {
-      const holonDetails = await holonHandler.callSmartContractGetFunc('getHolon', [holonId]);
-      const holonInfo = JSON.parse(holonDetails.details)
+      const holonKey = `ZTMHolon:${holonId}`
+      const holonInfo = await holonHandler.callSmartContractGetFunc('getHolon', [holonKey]);
 
       if (Object.keys(holonInfo).length > 0) {
         let objParms = {
-          name: holonInfo.name || "",
-          url: holonInfo.url,
-          health: holonDetails.status,
-          country: holonInfo.country,
-          address: holonId,
-          proxyAddr: holonDetails.proxyAddr
+          name: holonInfo.holonName || "",
+          url: holonInfo.holonURL,
+          health: holonInfo.status,
+          owner: holonInfo.owner,
+          donationAddress: holonInfo.donationAddress,
         }
         type === 'array' ? holonList.push(objParms) :
           holonObj[holonId] = objParms
@@ -213,8 +211,8 @@ const addHolonCitizen = async (holonAddress, holonContract = null) => {
     const allCitizens = await holonContract.callSmartContractGetFunc('getHolonCitizens', [holonAddress]);
     const citizenIdx = allCitizens.map(a => a.toLowerCase()).indexOf(storage.address.toLowerCase())
     //if not then add in the citizen's list
-    if (citizenIdx < 0)
-      await holonContract.createTransaction('addHolonCitizen', [holonAddress, storage.address])
+    // if (citizenIdx < 0)
+    await holonContract.createTransaction('addHolonCitizen', [holonAddress, storage.address])
 
     return { success: true, message: 'citizen added  in the holon citizen list' }
   }
