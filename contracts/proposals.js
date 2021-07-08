@@ -82,7 +82,7 @@ const listProposalIds = async (contract = null) => {
   let allIds = []
   try {
     do {
-      let proposalIds = await contract.callSmartContractGetFunc('getproposalIdsByCursor', [cursor, howMany])
+      let proposalIds = await contract.callSmartContractGetFunc('getproposalIndicesByCursor', [cursor, howMany])
       allIds = allIds.concat(proposalIds)
       cursor = cursor + howMany
     } while (1)
