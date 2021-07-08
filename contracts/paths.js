@@ -83,7 +83,6 @@ const pathsByNation = async (nation = 'USA') => {
   const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
   if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
     const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
-    console.log(hierarchyYaml)
     outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, pathDir)
   }

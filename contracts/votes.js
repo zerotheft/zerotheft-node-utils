@@ -1,32 +1,32 @@
 const fs = require('fs')
 const { get, remove, uniq } = require('lodash')
 const { getProposalContract, getVoterContract } = require('../utils/contract')
-const { convertStringToHash, convertToAscii } = require('../utils/web3')
+const { convertStringToHash } = require('../utils/web3')
 const { getProposalDetails } = require('./proposals')
 const { exportsDirNation, citizenSpecificVotesFile, proposalVotesFile, proposalArchiveVotesFile, proposalVotersFile, writeFile, voteDataRollupsFile } = require('../utils/common')
 
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
   let _voter = get(rollups.citizenSpecificVotes, (voteData.voter).toLowerCase(), {})
-  let _vote = get(_voter, (proposalInfo.path).toLowerCase(), (voteData.voteID).toLowerCase())
-  _voter[(proposalInfo.path).toLowerCase()] = _vote.toLowerCase()
+  let _vote = get(_voter, (proposalInfo.path), (voteData.voteID))
+  _voter[(proposalInfo.path)] = _vote
   rollups.citizenSpecificVotes[(voteData.voter).toLowerCase()] = _voter
 
   // if prior Vote is present
-  if (!voteData.voteReplaces.includes(convertToAscii(0))) {
+  if (voteData.voteReplaces !== "") {
     const _priorVote = await voterC.callSmartContractGetFunc('getVote', [voteData.voteReplaces])
     let _priorPropID = _priorVote.voteIsTheft ? _priorVote.yesTheftProposal : _priorVote.noTheftProposal
-    let _priorPVotes = get(rollups.proposalVotes, (_priorPropID).toLowerCase(), [])
+    let _priorPVotes = get(rollups.proposalVotes, (_priorPropID), [])
     remove(_priorPVotes, (_v) => {
-      return (_v).toLowerCase() === (voteData.voteReplaces).toLowerCase()
+      return (_v === voteData.voteReplaces)
     })
     let _pArchiveVotes = get(rollups.proposalArchiveVotes, (voteData.proposalID), [])
-    _pArchiveVotes.push((voteData.voteReplaces).toLowerCase())
+    _pArchiveVotes.push((voteData.voteReplaces))
     rollups.proposalArchiveVotes[(voteData.proposalID)] = uniq(_pArchiveVotes)
   }
 
   let _pvotes = get(rollups.proposalVotes, (voteData.proposalID), [])
-  _pvotes.push((voteData.voteID).toLowerCase())
+  _pvotes.push((voteData.voteID))
   rollups.proposalVotes[(voteData.proposalID)] = uniq(_pvotes)
 
   let _pvoters = get(rollups.proposalVoters, (voteData.proposalID), [])
@@ -56,8 +56,10 @@ const citizenPriorVote = async body => {
     let { citizenSpecificVotes } = await voteDataRollupsFile()
     // let priorvoteID = await voterC.callSmartContractGetFunc('getCitizenSpecificVote', [body.address, convertStringToHash(body.url)])
     let priorvoteID = (!isEmpty(citizenSpecificVotes) && citizenSpecificVotes[body.address]) ? get(citizenSpecificVotes[body.address], convertStringToHash(body.url), 0) : 0
+    console.log("========>", priorvoteID)
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
+    console.log(vote)
     let proposalID = vote.voteIsTheft ? vote.yesTheftProposal : vote.noTheftProposal
     const proposal = await getProposalDetails(proposalID, proposalC)
 
@@ -79,9 +81,9 @@ const voteDataRollups = async body => {
   const voterC = getVoterContract()
   const proposalC = getProposalContract()
   try {
-    const voteID = body.voteID
-    if (!voteID) throw new Error('vote ID not present')
-
+    const voteIndex = body.voteIndex
+    if (!voteIndex) throw new Error('vote voteIndex not present')
+    const voteID = `ZTMVote:${voteIndex}`
     let { voter, voteIsTheft, yesTheftProposal, noTheftProposal } = await voterC.callSmartContractGetFunc('getVote', [voteID])
     const { voteReplaces } = await voterC.callSmartContractGetFunc('getVoteExtra', [voteID])
     let proposalID = voteIsTheft ? yesTheftProposal : noTheftProposal
@@ -116,7 +118,7 @@ const listVoteIds = async (contract = null) => {
   let allIds = []
   try {
     do {
-      let voteIds = await contract.callSmartContractGetFunc('getVoteIDsByCursor', [cursor, howMany])
+      let voteIds = await contract.callSmartContractGetFunc('getVoteIndicesByCursor', [cursor, howMany])
       allIds = allIds.concat(voteIds)
       cursor = cursor + howMany
     } while (1)
