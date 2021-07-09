@@ -38,7 +38,7 @@ const listCitizenIds = async (contract = null) => {
   let allIds = []
   try {
     do {
-      let citizenIds = await contract.callSmartContractGetFunc('getCitizenIdsByCursor', [cursor, howMany])
+      let citizenIds = await contract.callSmartContractGetFunc('getCitizenIndicesByCursor', [cursor, howMany])
       allIds = allIds.concat(citizenIds)
       cursor = cursor + howMany
     } while (1)
