@@ -2,7 +2,7 @@ const Web3 = require('./Web3Class')
 
 const getPermissionContract = () => getContract('ZTMPermissions')
 const getProposalContract = () => getContract('ZTMProposals')
-const getVoterContract = () => getContract('ZTMVotes')
+const getVoteContract = () => getContract('ZTMVotes')
 const getCitizenContract = () => getContract('ZTMCitizens')
 const getVerifiedCitizenContract = () => getContract('ZTMVerifiedCitizens')
 const getPathContract = () => getContract('ZTMPaths')
@@ -15,7 +15,7 @@ const getContract = contractName => new Web3(contractName)
 module.exports = {
   getPermissionContract,
   getProposalContract,
-  getVoterContract,
+  getVoteContract,
   getCitizenContract,
   getVerifiedCitizenContract,
   getPathContract,
