@@ -1,6 +1,6 @@
 const { getCitizenContract } = require('../utils/contract')
 
-const getCitizen = async (address, citizenContract = null) => {
+const getCitizen = async (citizenID, citizenContract = null) => {
   if (!citizenContract) {
     citizenContract = await getCitizenContract()
   }
@@ -11,6 +11,7 @@ const getCitizen = async (address, citizenContract = null) => {
     return {
       success: true,
       name: `${citizen.firstName} ${citizen.middleName} ${citizen.lastName}`,
+      address: citizen.citizenAddress,
       firstName: citizen.firstName,
       middleName: citizen.middleName,
       lastName: citizen.lastName,
