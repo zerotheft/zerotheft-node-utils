@@ -8,7 +8,7 @@ const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage');
 const { getCitizen } = require('./citizens')
 const { APP_PATH } = require('../config')
-const { getProposalDetails } = require('./proposals')
+const { contractIdentifier: proposalIdentifier, getProposalContractVersion, getProposalDetails } = require('./proposals')
 const homedir = APP_PATH || require('os').homedir()
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
@@ -134,13 +134,14 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
       voterContract = getVoteContract()
     }
     let count = 0;
+    const propVer = await getProposalContractVersion()
     let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path)])
     if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
     let { results: pathDetails, errors } = await PromisePool
       .withConcurrency(10)
       .for(propIds)
       .process(async id => {
-        id = `ZTMProposal:${id}`
+        id = `${proposalIdentifier}:${propVer.version}:${id}`
         count++;
         let proposal
         try {
@@ -157,7 +158,6 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
           // pathDetails.push(proposal)
           return proposal
         }
-
         let { results: voteInfo, errors } = await PromisePool
           .withConcurrency(10)
           .for(proposal.votes)
