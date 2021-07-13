@@ -98,9 +98,10 @@ const voteDataRollups = async body => {
   const voterC = getVoteContract()
   const proposalC = getProposalContract()
   try {
+    const voteRes = await getVoteContractVersion(voterC)
     const voteIndex = body.voteIndex
     if (!voteIndex) throw new Error('vote voteIndex not present')
-    const voteID = `ZTMVote:${voteIndex}`
+    const voteID = `${contractIdentifier}:${voteRes.version}:${voteIndex}`
     let { voter, voteIsTheft, yesTheftProposal, noTheftProposal } = await voterC.callSmartContractGetFunc('getVote', [voteID])
     const { voteReplaces } = await voterC.callSmartContractGetFunc('getVoteExtra', [voteID])
     let proposalID = voteIsTheft ? yesTheftProposal : noTheftProposal

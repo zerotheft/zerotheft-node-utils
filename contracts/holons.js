@@ -31,7 +31,7 @@ const getHolonIdByAddress = async (holonAddress, holonContract = null) => {
     holonContract = await getHolonContract()
   }
   try {
-    const holonIndex = await holonContract.callSmartContractGetFunc('getUnverifiedHolonAddressIndex', [holonAddress])
+    const holonIndex = await holonContract.callSmartContractGetFunc('getHolonAddressIndex', [holonAddress])
     if (parseInt(holonIndex) === 0) throw new Error("no holon available with respect to address")
     const contractVersion = await holonContract.callSmartContractGetFunc('getContractVersion',)
 
@@ -293,6 +293,7 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
 module.exports = {
   contractIdentifier,
   getHolonContractVersion,
+  getHolonIdByAddress,
   getHolon,
   getHolons,
   addHolonDonor,
