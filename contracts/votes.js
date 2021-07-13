@@ -4,7 +4,26 @@ const { getProposalContract, getVoteContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { getProposalDetails } = require('./proposals')
 const { exportsDirNation, citizenSpecificVotesFile, proposalVotesFile, proposalArchiveVotesFile, proposalVotersFile, writeFile, voteDataRollupsFile } = require('../utils/common')
-
+const contractIdentifier = "ZTMVote"
+/**
+ * Get the version of vote contract version
+ * @param {object} voteContract Instance of vote contract
+ * @returns Object with vote contract version information
+ */
+const getVoteContractVersion = async (voteContract = null) => {
+  if (!voteContract) {
+    voteContract = await getVoteContract()
+  }
+  try {
+    const version = await voteContract.callSmartContractGetFunc('getContractVersion')
+    return {
+      success: true,
+      version
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
   let _voter = get(rollups.citizenSpecificVotes, (voteData.voter).toLowerCase(), {})
@@ -179,6 +198,8 @@ const getAllVoteIds = async () => {
   }
 }
 module.exports = {
+  contractIdentifier,
+  getVoteContractVersion,
   citizenPriorVote,
   listVoteIds,
   getAllVoteIds,

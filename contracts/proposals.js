@@ -13,6 +13,8 @@ const { getGithubTemplate } = require('../utils/github')
 const { exportsDirNation, voteDataRollupsFile } = require('../utils/common')
 const homedir = APP_PATH || require('os').homedir()
 const tmpPropDir = dir.join(homedir, '/tmp')
+const contractIdentifier = "ZTMProposal"
+
 if (!fs.existsSync(tmpPropDir)) {
   fs.mkdirSync(tmpPropDir, { recursive: true });
 }
@@ -69,6 +71,48 @@ const proposalYearTheftInfo = (file) => {
     }
   })
   return { theftYears, theftAmt }
+}
+
+/**
+ * Get the version of proposal contract version
+ * @param {object} proposalContract Instance of proposal contract
+ * @returns Object with proposal contract version information
+ */
+const getProposalContractVersion = async (proposalContract = null) => {
+  if (!proposalContract) {
+    proposalContract = await getProposalContract()
+  }
+  try {
+    const version = await proposalContract.callSmartContractGetFunc('getContractVersion')
+    return {
+      success: true,
+      version
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+/**
+ * Get the proposal ID by proposal index.
+ * @param {string} proposalIndex index of a specific proposal
+ * @param {object} proposalContract instance of a proposal contract
+ * @returns Object with information of proposal ID
+ */
+const getProposalIDByIndex = async (proposalIndex, proposalContract = null) => {
+  if (!proposalContract) {
+    proposalContract = await getProposalContract()
+  }
+  try {
+    const contractVersion = await proposalContract.callSmartContractGetFunc('getContractVersion',)
+
+    return {
+      success: true,
+      proposalIndex,
+      proposalID: `${contractIdentifier}:${contractVersion}:${proposalIndex}`
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
 }
 /*
 * List proposal ids only
@@ -145,19 +189,21 @@ const getProposals = async (proposalIDs, proposalContract = null) => {
     proposalContract = getProposalContract()
     proposalContract.init()
   }
-  const promises = proposalIDs.map(async (proposalID) => {
-    const proposalKey = `ZTMProposal:${proposalID}`
-    const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [proposalKey])
+  const verRes = await getProposalContractVersion(contract)
+
+  const promises = proposalIDs.map(async (proposalIndex) => {
+    const proposalID = `${contractIdentifier}:${verRes.version}:${proposalIndex}`
+    const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [proposalID])
     const votesContract = getVoteContract()
     votesContract.init()
-    // const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalID])
+    // const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalIndex])
     let { proposalVotes } = await voteDataRollupsFile()
 
     const mainProposal = {
-      "id": proposalID,
+      "id": proposalIndex,
       "owner": proposalDetail[0],
       "summary": proposalDetail[1],
-      "votes": !isEmpty(proposalVotes) ? get(proposalVotes, proposalKey, []) : [],
+      "votes": !isEmpty(proposalVotes) ? get(proposalVotes, proposalID, []) : [],
       "proposal_hash": proposalDetail[3],
       "created_at": proposalDetail[4]
     }
@@ -309,14 +355,15 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
   if (fs.existsSync(cachedProposalDir)) {
     cachedFiles = fs.readdirSync(cachedProposalDir);
   }
-
+  const verRes = await getProposalContractVersion(contract)
   let { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash])
   let { results, errors } = await PromisePool
     .withConcurrency(1)
     .for(propIds)
     .process(async pid => {
       try {
-        pid = `ZTMProposal:${pid}`
+        pid = `${contractIdentifier}:${verRes.version}:${pid}`
+
         let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path)
 
         let { proposalVotes } = await voteDataRollupsFile()
@@ -409,7 +456,6 @@ const getProposalYaml = async (proposalId, path, contract) => {
  */
 const getYamlFromCacheOrSmartContract = async (proposalId, path, contract, cachedYamls) => {
   let yamlJSON, filePath
-  const proposalKey = `ZTMProposal:${proposalId}`
   const proposalC = contract || getProposalContract()
   const proposal = await proposalC.callSmartContractGetFunc('getProposal', [proposalId])
   //check if proposal Yaml is in cache
@@ -468,9 +514,12 @@ const getCachedProposalsByPathsDir = path => {
 
 
 module.exports = {
+  contractIdentifier,
   getProposals,
   yamlStolenYears,
+  getProposalIDByIndex,
   proposalYearTheftInfo,
+  getProposalContractVersion,
   allProposals,
   listProposalIds,
   proposalsFromEvents,

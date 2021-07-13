@@ -1,4 +1,5 @@
 const { getCitizenContract } = require('../utils/contract')
+const contractIdentifier = "ZTMCitizen"
 
 /**
  * Fetch the respective index of citizen address
@@ -11,7 +12,6 @@ const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => 
     citizenContract = await getCitizenContract()
   }
   try {
-    const contractIdentifier = "ZTMCitizen"
     const citizenIndex = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
     if (parseInt(citizenIndex) === 0) throw new Error("no citizen available with respect to address")
     const contractVersion = await citizenContract.callSmartContractGetFunc('getContractVersion',)
@@ -20,6 +20,26 @@ const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => 
       success: true,
       citizenIndex,
       citizenID: `${contractIdentifier}:${contractVersion}:${citizenIndex}`
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+
+/**
+ * Get the version of citizen contract version
+ * @param {object} citizenContract Instance of citizen contract
+ * @returns Object with citizen contract version information
+ */
+const getCitizenContractVersion = async (citizenContract = null) => {
+  if (!citizenContract) {
+    citizenContract = await getCitizenContract()
+  }
+  try {
+    const version = await citizenContract.callSmartContractGetFunc('getContractVersion')
+    return {
+      success: true,
+      version
     }
   } catch (e) {
     return { success: false, error: e.message }
@@ -64,7 +84,7 @@ const listCitizenIds = async (contract = null) => {
   let allIds = []
   try {
     do {
-      let citizenIds = await contract.callSmartContractGetFunc('getCitizenIndicesByCursor', [cursor, howMany])
+      let citizenIds = await contract.callSmartContractGetFunc('getUnverifiedCitizenIndicesByCursor', [cursor, howMany])
       allIds = allIds.concat(citizenIds)
       cursor = cursor + howMany
     } while (1)
@@ -76,6 +96,8 @@ const listCitizenIds = async (contract = null) => {
 }
 
 module.exports = {
+  contractIdentifier,
+  getCitizenContractVersion,
   getCitizenIdByAddress,
   getCitizen,
   listCitizenIds

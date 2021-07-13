@@ -2,6 +2,7 @@ const { mean, uniq } = require('lodash');
 const { getCitizen } = require('./citizens')
 const { getHolonContract, getFeedbackContract } = require('../utils/contract')
 const { getStorageValues } = require('../utils/storage')
+const contractIdentifier = "ZTMHolon"
 
 /* get holon information based on holon address */
 const getHolon = async (holonContract, holonID) => {
@@ -18,17 +19,63 @@ const getHolon = async (holonContract, holonID) => {
     return { success: false, error: e.message }
   }
 }
+
+/**
+ * Fetch the respective index of holon address
+ * @param {string} holonAddress address of a holon
+ * @param {object} holonContract instance of a holon contract
+ * @returns object with holonID information wrt holon address
+ */
+const getHolonIdByAddress = async (holonAddress, holonContract = null) => {
+  if (!holonContract) {
+    holonContract = await getHolonContract()
+  }
+  try {
+    const holonIndex = await holonContract.callSmartContractGetFunc('getUnverifiedHolonAddressIndex', [holonAddress])
+    if (parseInt(holonIndex) === 0) throw new Error("no holon available with respect to address")
+    const contractVersion = await holonContract.callSmartContractGetFunc('getContractVersion',)
+
+    return {
+      success: true,
+      holonIndex,
+      holonID: `${contractIdentifier}:${contractVersion}:${holonIndex}`
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+/**
+ * Get the version of holon contract version
+ * @param {object} holonContract Instance of holon contract
+ * @returns Object with holon contract version information
+ */
+const getHolonContractVersion = async (holonContract = null) => {
+  if (!holonContract) {
+    holonContract = await getHolonContract()
+  }
+  try {
+    const version = await holonContract.callSmartContractGetFunc('getContractVersion')
+    return {
+      success: true,
+      version
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+
 /* Return all Holon Services available */
 const getHolons = async (type = 'array', holonHandler = null) => {
   if (holonHandler === null) {
     holonHandler = await getHolonContract();
   }
+  const hres = await getHolonContractVersion(holonHandler)
   const holonIds = await holonHandler.callSmartContractGetFunc('getHolonIds');
   let holonList = []
   let holonObj = {}
   if (holonIds) {
     for (const holonId of holonIds) {
-      const holonKey = `ZTMHolon:${holonId}`
+      const holonKey = `${contractIdentifier}:${hres.version}:${holonId}`
       const holonInfo = await holonHandler.callSmartContractGetFunc('getHolon', [holonKey]);
 
       if (Object.keys(holonInfo).length > 0) {
@@ -40,7 +87,7 @@ const getHolons = async (type = 'array', holonHandler = null) => {
           donationAddress: holonInfo.donationAddress,
         }
         type === 'array' ? holonList.push(objParms) :
-          holonObj[holonId] = objParms
+          holonObj[holonKey] = objParms
       }
     }
   }
@@ -244,6 +291,8 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
   }
 }
 module.exports = {
+  contractIdentifier,
+  getHolonContractVersion,
   getHolon,
   getHolons,
   addHolonDonor,
