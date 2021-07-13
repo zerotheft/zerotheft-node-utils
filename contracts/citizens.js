@@ -5,8 +5,8 @@ const getCitizen = async (address, citizenContract = null) => {
     citizenContract = await getCitizenContract()
   }
   try {
-    const citizen = await citizenContract.callSmartContractGetFunc('getCitizen', [address])
-    const citizenExtra = await citizenContract.callSmartContractGetFunc('getCitienExtraData', [address])
+    const citizen = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizen', [address])
+    const citizenExtra = await citizenContract.callSmartContractGetFunc('getUnVerifiedCitienExtraData', [address])
 
     return {
       success: true,
