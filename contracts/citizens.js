@@ -1,16 +1,62 @@
 const { getCitizenContract } = require('../utils/contract')
+const contractIdentifier = "ZTMCitizen"
 
-const getCitizen = async (address, citizenContract = null) => {
+/**
+ * Fetch the respective index of citizen address
+ * @param {string} citizenAddress address of a citizen
+ * @param {Object} citizenContract object of a citizen contract
+ * @returns 
+ */
+const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => {
   if (!citizenContract) {
     citizenContract = await getCitizenContract()
   }
   try {
-    const citizen = await citizenContract.callSmartContractGetFunc('getCitizen', [address])
-    const citizenExtra = await citizenContract.callSmartContractGetFunc('getCitienExtraData', [address])
+    const citizenIndex = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
+    if (parseInt(citizenIndex) === 0) throw new Error("no citizen available with respect to address")
+    const contractVersion = await citizenContract.callSmartContractGetFunc('getContractVersion',)
+
+    return {
+      success: true,
+      citizenIndex,
+      citizenID: `${contractIdentifier}:${contractVersion}:${citizenIndex}`
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+
+/**
+ * Get the version of citizen contract version
+ * @param {object} citizenContract Instance of citizen contract
+ * @returns Object with citizen contract version information
+ */
+const getCitizenContractVersion = async (citizenContract = null) => {
+  if (!citizenContract) {
+    citizenContract = await getCitizenContract()
+  }
+  try {
+    const version = await citizenContract.callSmartContractGetFunc('getContractVersion')
+    return {
+      success: true,
+      version
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+const getCitizen = async (citizenID, citizenContract = null) => {
+  if (!citizenContract) {
+    citizenContract = await getCitizenContract()
+  }
+  try {
+    const citizen = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizen', [citizenID])
+    const citizenExtra = await citizenContract.callSmartContractGetFunc('getUnverifiedCitienExtraData', [citizenID])
 
     return {
       success: true,
       name: `${citizen.firstName} ${citizen.middleName} ${citizen.lastName}`,
+      address: citizen.citizenAddress,
       firstName: citizen.firstName,
       middleName: citizen.middleName,
       lastName: citizen.lastName,
@@ -38,7 +84,7 @@ const listCitizenIds = async (contract = null) => {
   let allIds = []
   try {
     do {
-      let citizenIds = await contract.callSmartContractGetFunc('getCitizenIndicesByCursor', [cursor, howMany])
+      let citizenIds = await contract.callSmartContractGetFunc('getUnverifiedCitizenIndicesByCursor', [cursor, howMany])
       allIds = allIds.concat(citizenIds)
       cursor = cursor + howMany
     } while (1)
@@ -50,6 +96,9 @@ const listCitizenIds = async (contract = null) => {
 }
 
 module.exports = {
+  contractIdentifier,
+  getCitizenContractVersion,
+  getCitizenIdByAddress,
   getCitizen,
   listCitizenIds
 }
