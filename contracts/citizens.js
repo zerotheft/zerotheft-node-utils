@@ -2,8 +2,8 @@ const { getCitizenContract } = require('../utils/contract')
 
 /**
  * Fetch the respective index of citizen address
- * @param {string} citizenAddress 
- * @param {*} citizenContract 
+ * @param {string} citizenAddress address of a citizen
+ * @param {Object} citizenContract object of a citizen contract
  * @returns 
  */
 const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => {
