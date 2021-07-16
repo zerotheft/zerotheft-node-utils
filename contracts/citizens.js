@@ -12,10 +12,8 @@ const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => 
     citizenContract = await getCitizenContract()
   }
   try {
-    const citizenIndex = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
+    const { citizenIndex, contractVersion } = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
     if (parseInt(citizenIndex) === 0) throw new Error("no citizen available with respect to address")
-    const contractVersion = await citizenContract.callSmartContractGetFunc('getContractVersion',)
-
     return {
       success: true,
       citizenIndex,
