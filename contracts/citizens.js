@@ -12,10 +12,8 @@ const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => 
     citizenContract = await getCitizenContract()
   }
   try {
-    const citizenIndex = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
+    const { citizenIndex, contractVersion } = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
     if (parseInt(citizenIndex) === 0) throw new Error("no citizen available with respect to address")
-    const contractVersion = await citizenContract.callSmartContractGetFunc('getContractVersion',)
-
     return {
       success: true,
       citizenIndex,
@@ -79,20 +77,29 @@ const listCitizenIds = async (contract = null) => {
   if (contract === null) {
     contract = getCitizenContract()
   }
-  let cursor = 0;
-  let howMany = 1000; // Get thousands at a time
-  let allIds = []
-  try {
-    do {
-      let citizenIds = await contract.callSmartContractGetFunc('getUnverifiedCitizenIndicesByCursor', [cursor, howMany])
-      allIds = allIds.concat(citizenIds)
-      cursor = cursor + howMany
-    } while (1)
+  const latestVersion = await contract.callSmartContractGetFunc('getContractVersion');
+  let version = latestVersion.split('v')[1];
+  let allVoters = {}
+  let allVotersCount = 0;
+  while (version > 0) {
+    let versionVoters = [];
+    let cursor = 0;
+    let howMany = 1000;
+    try {
+      do {
+        let voters = await contract.callSmartContractGetFunc('getUnverifiedCitizenIndicesByCursor', [cursor, howMany, version])
+        versionVoters = versionVoters.concat(voters)
+        cursor = cursor + howMany
+      } while (1)
+    }
+    catch (e) {
+      console.log(e.message)
+    }
+    allVoters[`v${version}`] = versionVoters
+    allVotersCount += versionVoters.length
+    version--;
   }
-  catch (e) {
-    console.log(e.message)
-  }
-  return allIds
+  return { allVoters, allVotersCount }
 }
 
 module.exports = {
