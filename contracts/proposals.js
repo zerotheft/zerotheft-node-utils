@@ -121,20 +121,29 @@ const listProposalIds = async (contract = null) => {
   if (!contract) {
     contract = getProposalContract()
   }
-  let cursor = 0;
-  let howMany = 1000; // Get thousands at a time
-  let allIds = []
-  try {
-    do {
-      let proposalIds = await contract.callSmartContractGetFunc('getproposalIndicesByCursor', [cursor, howMany])
-      allIds = allIds.concat(proposalIds)
-      cursor = cursor + howMany
-    } while (1)
+  const latestVersion = await contract.callSmartContractGetFunc('getContractVersion');
+  let version = latestVersion.split('v')[1];
+  let allProposals = {}
+  let allProposalsCount = 0;
+  while (version > 0) {
+    let versionProposals = [];
+    let cursor = 0;
+    let howMany = 1000; // Get thousands at a time
+    try {
+      do {
+        let proposalIds = await contract.callSmartContractGetFunc('getproposalIndicesByCursor', [cursor, howMany, version])
+        versionProposals = versionProposals.concat(proposalIds)
+        cursor = cursor + howMany
+      } while (1)
+    }
+    catch (e) {
+      console.log(e.message)
+    }
+    allProposals[`v${version}`] = versionProposals
+    allProposalsCount += versionProposals.length
+    version--;
   }
-  catch (e) {
-    console.log(e.message)
-  }
-  return allIds
+  return { allProposals, allProposalsCount }
 }
 
 
