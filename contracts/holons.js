@@ -118,13 +118,11 @@ const getHolons = async (type = 'array', holonHandler = null) => {
   if (holonHandler === null) {
     holonHandler = await getHolonContract();
   }
-  const hres = await getHolonContractVersion(holonHandler)
-  const holonIds = await holonHandler.callSmartContractGetFunc('getHolonIds');
+  const holonIds = await getHolonIds()
   let holonList = []
   let holonObj = {}
   if (holonIds) {
-    for (const holonId of holonIds) {
-      const holonKey = `${contractIdentifier}:${hres.version}:${holonId}`
+    for (const holonKey of holonIds) {
       const holonInfo = await holonHandler.callSmartContractGetFunc('getHolon', [holonKey]);
 
       if (Object.keys(holonInfo).length > 0) {
