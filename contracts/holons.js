@@ -4,6 +4,57 @@ const { getHolonContract, getFeedbackContract } = require('../utils/contract')
 const { getStorageValues } = require('../utils/storage')
 const contractIdentifier = "ZTMHolon"
 
+
+/**
+ * Get the version of holon contract version
+ * @param {object} holonContract Instance of holon contract
+ * @returns Object with holon contract version information
+ */
+const getHolonContractVersion = async (holonContract = null) => {
+  if (!holonContract) {
+    holonContract = await getProposalContract()
+  }
+  try {
+    const version = await holonContract.callSmartContractGetFunc('getContractVersion')
+    return {
+      success: true,
+      version,
+      number: version.split('v')[1]
+    }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+
+/* get all citizen ids*/
+const listHolonIds = async (contract = null) => {
+  if (contract === null) {
+    contract = getHolonContract()
+  }
+  const verRes = await getHolonContractVersion(contract);
+  let version = verRes.number;
+  let allHolons = {}
+  let allHolonsCount = 0;
+  while (version > 0) {
+    let versionHolons = [];
+    let cursor = 0;
+    let howMany = 1000; // Get thousands at a time
+    try {
+      do {
+        let voters = await contract.callSmartContractGetFunc('getHolonIndicesByCursor', [cursor, howMany, version])
+        versionHolons = versionHolons.concat(voters)
+        cursor = cursor + howMany
+      } while (1)
+    }
+    catch (e) {
+      console.log(e.message)
+    }
+    allHolons[`v${version}`] = versionHolons
+    allHolonsCount += versionHolons.length
+    version--;
+  }
+  return { allHolons, allHolonsCount }
+}
 /* get holon information based on holon address */
 const getHolon = async (holonContract, holonID) => {
   try {
@@ -44,25 +95,7 @@ const getHolonIdByAddress = async (holonAddress, holonContract = null) => {
     return { success: false, error: e.message }
   }
 }
-/**
- * Get the version of holon contract version
- * @param {object} holonContract Instance of holon contract
- * @returns Object with holon contract version information
- */
-const getHolonContractVersion = async (holonContract = null) => {
-  if (!holonContract) {
-    holonContract = await getHolonContract()
-  }
-  try {
-    const version = await holonContract.callSmartContractGetFunc('getContractVersion')
-    return {
-      success: true,
-      version
-    }
-  } catch (e) {
-    return { success: false, error: e.message }
-  }
-}
+
 
 /* Return all Holon Services available */
 const getHolons = async (type = 'array', holonHandler = null) => {
@@ -292,6 +325,7 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
 }
 module.exports = {
   contractIdentifier,
+  listHolonIds,
   getHolonContractVersion,
   getHolonIdByAddress,
   getHolon,
