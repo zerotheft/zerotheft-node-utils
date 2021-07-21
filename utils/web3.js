@@ -131,7 +131,7 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
       networkId = (config.network === "kotti") ? 6 : 1;
       chainId = (config.network === "kotti") ? 6 : 61;
     } else if (config.network === "geth") {
-      networkId = chainId = 1440;
+      networkId = chainId = config.NETWORK_ID;
     }
 
     let tx;
