@@ -86,7 +86,8 @@ const getProposalContractVersion = async (proposalContract = null) => {
     const version = await proposalContract.callSmartContractGetFunc('getContractVersion')
     return {
       success: true,
-      version
+      version,
+      number: version.split('v')[1]
     }
   } catch (e) {
     return { success: false, error: e.message }
@@ -114,6 +115,8 @@ const getProposalIDByIndex = async (proposalIndex, proposalContract = null) => {
     return { success: false, error: e.message }
   }
 }
+
+
 /*
 * List proposal ids only
 */
@@ -121,17 +124,16 @@ const listProposalIds = async (contract = null) => {
   if (!contract) {
     contract = getProposalContract()
   }
-  const latestVersion = await contract.callSmartContractGetFunc('getContractVersion');
-  let version = latestVersion.split('v')[1];
+  let verRes = await getProposalContractVersion(contract)
   let allProposals = {}
   let allProposalsCount = 0;
-  while (version > 0) {
+  while (verRes.number > 0) {
     let versionProposals = [];
     let cursor = 0;
     let howMany = 1000; // Get thousands at a time
     try {
       do {
-        let proposalIds = await contract.callSmartContractGetFunc('getproposalIndicesByCursor', [cursor, howMany, version])
+        let proposalIds = await contract.callSmartContractGetFunc('getproposalIndicesByCursor', [cursor, howMany, verRes.number])
         versionProposals = versionProposals.concat(proposalIds)
         cursor = cursor + howMany
       } while (1)
@@ -139,9 +141,9 @@ const listProposalIds = async (contract = null) => {
     catch (e) {
       console.log(e.message)
     }
-    allProposals[`v${version}`] = versionProposals
+    allProposals[verRes.version] = versionProposals
     allProposalsCount += versionProposals.length
-    version--;
+    verRes.number--;
   }
   return { allProposals, allProposalsCount }
 }
@@ -364,41 +366,46 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
   if (fs.existsSync(cachedProposalDir)) {
     cachedFiles = fs.readdirSync(cachedProposalDir);
   }
+  let allPropsData = []
   const verRes = await getProposalContractVersion(contract)
-  let { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash])
-  let { results, errors } = await PromisePool
-    .withConcurrency(1)
-    .for(propIds)
-    .process(async pid => {
-      try {
-        pid = `${contractIdentifier}:${verRes.version}:${pid}`
+  while (verRes.number > 0) {
+    let { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash, verRes.number])
+    let { results, errors } = await PromisePool
+      .withConcurrency(1)
+      .for(propIds)
+      .process(async pid => {
+        try {
+          pid = `${contractIdentifier}:v${verRes.number}:${pid}`
 
-        let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path)
+          let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path)
 
-        let { proposalVotes } = await voteDataRollupsFile()
-        //   const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
-        const feedbacks = await proposalFeedback(pid, proposalC)
+          let { proposalVotes } = await voteDataRollupsFile()
+          //   const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
+          const feedbacks = await proposalFeedback(pid, proposalC)
 
-        const ratings = get(feedbacks, 'ratingData', 0)
-        const complaints = get(feedbacks, 'complaintData', 0)
-        if (!pData.fromCache) {
-          newProposals[pid] = pData.proposal
+          const ratings = get(feedbacks, 'ratingData', 0)
+          const complaints = get(feedbacks, 'complaintData', 0)
+          if (!pData.fromCache) {
+            newProposals[pid] = pData.proposal
+          }
+          return {
+            ...pData.proposal,
+            votes: !isEmpty(proposalVotes) ? get(proposalVotes, pid, []).length : 0,
+            ratings,
+            complaints
+          }
+        } catch (e) {
+          console.log('getPathProposalsByPath', pid, e)
+          return null;
         }
-        return {
-          ...pData.proposal,
-          votes: !isEmpty(proposalVotes) ? get(proposalVotes, pid, []).length : 0,
-          ratings,
-          complaints
-        }
-      } catch (e) {
-        console.log('getPathProposalsByPath', pid, e)
-        return null;
-      }
-    })
+      })
+    allPropsData = allPropsData.concat(results)
+    verRes.number--;
+  }
   // append new proposals in cache file
   if (!isEmpty(newProposals))
     fs.writeFileSync(file, JSON.stringify({ ...cachedProposalsByPaths, ...newProposals }))
-  return results
+  return allPropsData
 }
 
 /**
