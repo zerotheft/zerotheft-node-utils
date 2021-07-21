@@ -55,6 +55,22 @@ const listHolonIds = async (contract = null) => {
   }
   return { allHolons, allHolonsCount }
 }
+
+/**
+ * Get all the holon IDs from indices and their respective belonging version.
+*/
+const getHolonIds = async (contract = null) => {
+  if (contract === null) {
+    contract = getHolonContract()
+  }
+  let allHolonIDs = [];
+  const { allHolons, allHolonsCount } = await listHolonIds(contract);
+  Object.keys(allHolons).forEach(version => {
+    let holonIDs = allHolons[version].map(index => `${contractIdentifier}:${version}:${index}`)
+    allHolonIDs = allHolonIDs.concat(holonIDs)
+  });
+  return allHolonIDs
+}
 /* get holon information based on holon address */
 const getHolon = async (holonContract, holonID) => {
   try {
@@ -326,6 +342,7 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
 module.exports = {
   contractIdentifier,
   listHolonIds,
+  getHolonIds,
   getHolonContractVersion,
   getHolonIdByAddress,
   getHolon,
