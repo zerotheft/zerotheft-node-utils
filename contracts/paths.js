@@ -133,63 +133,71 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
     if (!voterContract) {
       voterContract = getVoteContract()
     }
+    let allDetails = []
     let count = 0;
-    const propVer = await getProposalContractVersion()
-    let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path)])
-    if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
-    let { results: pathDetails, errors } = await PromisePool
-      .withConcurrency(10)
-      .for(propIds)
-      .process(async id => {
-        id = `${proposalIdentifier}:${propVer.version}:${id}`
-        count++;
-        let proposal
-        try {
-          proposal = await getProposalDetails(id, proposalContract)
-        }
-        catch (e) {
-          console.log('getPathDetail Error::', id, e)
-          return null
-        }
+    const verRes = await getProposalContractVersion(proposalContract)
+    while (verRes.number > 0) {
 
-        //get rid of un-necessary  keys
-        ['detail', 'ratings', 'complaints', 'description', 'proposal_hash'].forEach(e => delete proposal[e]);
-        if (!withInfo) {
-          // pathDetails.push(proposal)
-          return proposal
-        }
-        let { results: voteInfo, errors } = await PromisePool
-          .withConcurrency(10)
-          .for(proposal.votes)
-          .process(async vid => {
-            try {
-              let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVote', [vid])
-              // let citizenInfo = await getCitizen(singleVoterInfo.voter)
-              return {
-                voterId: singleVoterInfo.voter,
-                voteId: vid,
-                voteType: singleVoterInfo.voteIsTheft,
-                altTheftAmt: singleVoterInfo.customTheftAmount === "" ? {} : JSON.parse(singleVoterInfo.customTheftAmount),
-                path: path.split('/').slice(1).join('/'),
-                proposalId: id,
-                votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y))
+      let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path), verRes.number])
+      if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
+      let { results: pathDetails, errors } = await PromisePool
+        .withConcurrency(10)
+        .for(propIds)
+        .process(async id => {
+          id = `${proposalIdentifier}:v${verRes.number}:${id}`
+          count++;
+          let proposal
+          try {
+            proposal = await getProposalDetails(id, proposalContract)
+          }
+          catch (e) {
+            console.log('getPathDetail Error::', id, e)
+            return null
+          }
+
+          //get rid of un-necessary  keys
+          ['detail', 'ratings', 'complaints', 'description', 'proposal_hash'].forEach(e => delete proposal[e]);
+          if (!withInfo) {
+            return proposal
+          }
+
+          let { results: voteInfo, errors } = await PromisePool
+            .withConcurrency(10)
+            .for(proposal.votes)
+            .process(async vid => {
+              try {
+                let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVote', [vid])
+                // let citizenInfo = await getCitizen(singleVoterInfo.voter)
+                return {
+                  voterId: singleVoterInfo.voter,
+                  voteId: vid,
+                  voteType: singleVoterInfo.voteIsTheft,
+                  altTheftAmt: singleVoterInfo.customTheftAmount === "" ? {} : JSON.parse(singleVoterInfo.customTheftAmount),
+                  path: path.split('/').slice(1).join('/'),
+                  proposalId: id,
+                  votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y))
+                }
               }
-            }
-            catch (e) {
-              console.log('getPathDetail(getVote)', e)
-              return null
-            }
-          })
-        allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal: ${path} ::  ${id} detail fetched`)
+              catch (e) {
+                console.log('getPathDetail(getVote)', e)
+                return null
+              }
+            })
+          allVotesInfo = allVotesInfo.concat(voteInfo)
+          console.log(`Proposal: ${path} ::  ${id} detail fetched`)
 
-        return {
-          ...proposal,
-          path: path.split('/').slice(1).join('/'),
-          voteInfo
-        }
-      })
-    return { pathDetails, allVotesInfo, success: true }
+          return {
+            ...proposal,
+            path: path.split('/').slice(1).join('/'),
+            voteInfo
+          }
+        })
+
+      allDetails = allDetails.concat(pathDetails)
+      verRes.number--;
+
+    }
+    return { allDetails, allVotesInfo, success: true }
   } catch (e) {
     return { success: false, message: e.message }
   }
