@@ -276,7 +276,6 @@ const proposalRating = async (feedbackContract, proposalID) => {
     }
 
     let ratingPromises = allFeedbackers.map(async (feedbacker) => {
-      let x = await feedbackContract.callSmartContractGetFunc('getRatingVersion', [proposalID, feedbacker])
       const feedback = await feedbackContract.callSmartContractGetFunc('getProposalRating', [proposalID, feedbacker])
       return parseInt(feedback.rating)
     })
