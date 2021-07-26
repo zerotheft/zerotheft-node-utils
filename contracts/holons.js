@@ -100,10 +100,10 @@ const getHolonIdByAddress = async (holonAddress, holonContract = null) => {
   try {
     const holonRes = await holonContract.callSmartContractGetFunc('getHolonAddressIndex', [holonAddress])
 
-
     return {
       success: true,
-      holonRes
+      holonIndex: holonRes.holonIndex,
+      holonID: holonRes.holonID
     }
   } catch (e) {
     return { success: false, error: e.message }
