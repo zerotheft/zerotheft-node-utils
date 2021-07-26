@@ -98,14 +98,12 @@ const getHolonIdByAddress = async (holonAddress, holonContract = null) => {
     holonContract = await getHolonContract()
   }
   try {
-    const holonIndex = await holonContract.callSmartContractGetFunc('getHolonAddressIndex', [holonAddress])
-    if (parseInt(holonIndex) === 0) throw new Error("no holon available with respect to address")
-    const contractVersion = await holonContract.callSmartContractGetFunc('getContractVersion',)
+    const holonRes = await holonContract.callSmartContractGetFunc('getHolonAddressIndex', [holonAddress])
+
 
     return {
       success: true,
-      holonIndex,
-      holonID: `${contractIdentifier}:${contractVersion}:${holonIndex}`
+      holonRes
     }
   } catch (e) {
     return { success: false, error: e.message }

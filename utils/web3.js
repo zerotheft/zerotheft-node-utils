@@ -195,10 +195,14 @@ const signMessage = async (params, signer = null) => {
   if (!signer) signer = getStorageValues()
 
   const web3 = initiateWeb3()
-  const sha3 = web3.utils.soliditySha3(...params)
+  let sha3 = web3.utils.soliditySha3(...params)
   const signedMessage = await web3.eth.accounts.sign(sha3, signer.key)
   // const signedMessage = await web3.eth.sign(sha3, signer.address)
-  // const recoer = await web3.eth.accounts.recover(signedMessage);
+  // let signedMessage = await web3.eth.sign("0x5fe7f977e71dba2ea1a68e21057beebb9be2ac30c6410aa38d4f3fbe41dcffd2", "0xCD4f2b154dd0553bfC51cCE4356a23956d97490d")
+
+  // console.log(sha3, "====", signer, "===", signedMessage)
+
+  // const recoer = await web3.eth.accounts.recover("0x5fe7f977e71dba2ea1a68e21057beebb9be2ac30c6410aa38d4f3fbe41dcffd2", signedMessage);
   // console.log(recoer)
   return signedMessage
 }

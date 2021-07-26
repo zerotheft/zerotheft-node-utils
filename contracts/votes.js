@@ -18,12 +18,15 @@ const getVoteContractVersion = async (voteContract = null) => {
     const version = await voteContract.callSmartContractGetFunc('getContractVersion')
     return {
       success: true,
-      version
+      version,
+      number: version.split('v')[1]
+
     }
   } catch (e) {
     return { success: false, error: e.message }
   }
 }
+
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
   let _voter = get(rollups.citizenSpecificVotes, (voteData.voter).toLowerCase(), {})
@@ -131,22 +134,30 @@ const listVoteIds = async (contract = null) => {
   if (!contract) {
     contract = getVoteContract()
   }
-  let cursor = 0;
-  let howMany = 1000; // Get thousands at a time
-  let allIds = []
-  try {
-    do {
-      let voteIds = await contract.callSmartContractGetFunc('getVoteIndicesByCursor', [cursor, howMany])
-      allIds = allIds.concat(voteIds)
-      cursor = cursor + howMany
-    } while (1)
-  }
-  catch (e) {
-    console.log(e.message)
-  }
-  return allIds
-}
+  let verRes = await getVoteContractVersion(contract)
+  let allVotes = {}
+  let allVotesCount = 0;
+  while (verRes.number > 0) {
+    let versionVotes = [];
 
+    let cursor = 0;
+    let howMany = 1000; // Get thousands at a time
+    try {
+      do {
+        let voteIds = await contract.callSmartContractGetFunc('getVoteIndicesByCursor', [cursor, howMany, verRes.number])
+        versionVotes = versionVotes.concat(voteIds)
+        cursor = cursor + howMany
+      } while (1)
+    }
+    catch (e) {
+      console.log(e.message)
+    }
+    allVotes[verRes.version] = versionVotes
+    allVotesCount += versionVotes.length
+    verRes.number--;
+  }
+  return { allVotes, allVotesCount }
+}
 /*
 * Get all votes
 */
