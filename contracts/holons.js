@@ -1,5 +1,6 @@
 const { mean, uniq } = require('lodash');
-const { getCitizen } = require('./citizens')
+const { getCitizen, getCitizenIdByAddress } = require('./citizens')
+const { getFeedbackContractVersion } = require('./feedbacks')
 const { getHolonContract, getFeedbackContract } = require('../utils/contract')
 const { getStorageValues } = require('../utils/storage')
 const contractIdentifier = "ZTMHolon"
@@ -221,13 +222,20 @@ const removeHolonDonor = async (holonAddress, holonContract = null) => {
  */
 const holonRating = async (feedbackContract, holonID) => {
   try {
-    const feedbackers = await feedbackContract.callSmartContractGetFunc('totalHolonRaters', [holonID])
-    let ratingPromises = uniq(feedbackers).map(async (feedbacker) => {
+    const verRes = await getFeedbackContractVersion(feedbackContract);
+    let version = verRes.number;
+    let allFeedbackers = [];
+    while (version > 0) {
+      let feedbackers = await feedbackContract.callSmartContractGetFunc('totalHolonRaters', [holonID, version])
+      allFeedbackers = allFeedbackers.concat(feedbackers);
+      version--;
+    }
+    let ratingPromises = uniq(allFeedbackers).map(async (feedbacker) => {
       const feedback = await feedbackContract.callSmartContractGetFunc('getHolonRating', [holonID, feedbacker])
       return parseInt(feedback.rating)
     })
     const allRatings = await Promise.all(ratingPromises)
-    return { success: true, count: uniq(feedbackers).length, rating: mean(allRatings) || 0 }
+    return { success: true, count: uniq(allFeedbackers).length, rating: mean(allRatings) || 0 }
   } catch (e) {
     return { success: false, error: e.message }
   }
@@ -242,12 +250,20 @@ const holonRating = async (feedbackContract, holonID) => {
 const holonComplaints = async (feedbackContract, holonID) => {
   try {
     let complaints = {}
-    const complainers = await feedbackContract.callSmartContractGetFunc('totalHolonCommentors', [holonID])
-    let complaintPromises = complainers.map(async (complainer) => {
-      const countComplaints = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToHolon', [holonID, complainer]);
-      const citizenInfo = await getCitizen(complainer);
-      for (let i = 1; i <= parseInt(countComplaints); i++) {
-        let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, complainer, i]);
+    let allComplainers = []
+    const verRes = await getFeedbackContractVersion(feedbackContract);
+    let version = verRes.number;
+    while (version > 0) {
+      const complainers = await feedbackContract.callSmartContractGetFunc('totalHolonCommentors', [holonID, version])
+      allComplainers = allComplainers.concat(complainers)
+      version--;
+    }
+    let complaintPromises = allComplainers.map(async (complainer) => {
+      const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToHolon', [holonID, complainer]);
+      const cres = await getCitizenIdByAddress(complainer);
+      const citizenInfo = await getCitizen(cres.citizenID);
+      for (let i = 1; i <= parseInt(countRes.holonCommentsCount); i++) {
+        let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, complainer, i, countRes.fromContractVersion]);
         complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
       }
     })
@@ -286,6 +302,7 @@ const holonFeedback = async (holonID, feedbackContract = null) => {
  * @returns rating and comments passed by specific citizen
  */
 const citizenFeedback = async (holonID, citizenAddress, feedbackContract = null) => {
+
   try {
     if (!feedbackContract) {
       feedbackContract = getFeedbackContract()
@@ -293,10 +310,11 @@ const citizenFeedback = async (holonID, citizenAddress, feedbackContract = null)
     }
     const complaints = {}
     const feedback = await feedbackContract.callSmartContractGetFunc('getHolonRating', [holonID, citizenAddress])
-    const countComplaints = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToHolon', [holonID, citizenAddress]);
-    const citizenInfo = await getCitizen(citizenAddress);
-    for (let i = 1; i <= parseInt(countComplaints); i++) {
-      let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, citizenAddress, i]);
+    const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToHolon', [holonID, citizenAddress]);
+    const cres = await getCitizenIdByAddress(citizenAddress);
+    const citizenInfo = await getCitizen(cres.citizenID);
+    for (let i = 1; i <= parseInt(countRes.holonCommentsCount); i++) {
+      let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, citizenAddress, i, countRes.fromContractVersion]);
       complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
     }
     return { success: true, ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, updatedAt: feedback.updatedAt }, complaintData: complaints };
