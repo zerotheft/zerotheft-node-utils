@@ -3,6 +3,7 @@ const { getCitizen, getCitizenIdByAddress } = require('./citizens')
 const { getFeedbackContractVersion } = require('./feedbacks')
 const { getHolonContract, getFeedbackContract } = require('../utils/contract')
 const { getStorageValues } = require('../utils/storage')
+const { signMessage } = require('../utils/web3')
 const contractIdentifier = "ZTMHolon"
 
 
@@ -62,7 +63,6 @@ const listHolonIds = async (contract = null) => {
  * @param contract Instanace of ZTMHolons contract
  * @param holonID ID of holon whose users need to be extracted
  * @return allCitizens Object with list of citizens addresses per contract version
- * @return allCitizensCount Total number of citizens who selected a holon
  */
 const listHolonCitizens = async (contract = null, holonID) => {
   if (contract === null) {
@@ -70,23 +70,19 @@ const listHolonCitizens = async (contract = null, holonID) => {
   }
   const verRes = await getHolonContractVersion(contract);
   let version = verRes.number;
-  let allCitizens = {}
-  let allCitizensCount = 0;
+  let allCitizens = [];
   while (version > 0) {
-    let versionCitizens = [];
 
     try {
-      let citizens = await contract.callSmartContractGetFunc('getHolonCitizens', [holonID, version])
-      versionCitizens = versionCitizens.concat(citizens)
+      const citizens = await contract.callSmartContractGetFunc('getHolonCitizens', [holonID, version])
+      allCitizens = allCitizens.concat(citizens)
     }
     catch (e) {
       console.log(e.message)
     }
-    allCitizens[`v${version}`] = versionCitizens
-    allCitizensCount += versionCitizens.length
     version--;
   }
-  return { allCitizens, allCitizensCount }
+  return allCitizens
 }
 
 /**
@@ -332,7 +328,7 @@ const getHolonCitizens = async (holonAddress, holonContract = null) => {
       holonContract = getHolonContract()
       holonContract.init()
     }
-    const res = await holonContract.callSmartContractGetFunc('getHolonCitizens', [holonAddress]);
+    const res = await listHolonCitizens(holonContract, holonAddress);
     return { success: true, citizens: res }
   }
   catch (e) {
@@ -350,11 +346,16 @@ const addHolonCitizen = async (holonAddress, holonContract = null) => {
     }
     const storage = await getStorageValues()
     //check if citizen is already in a citizen's list of holon
-    const allCitizens = await holonContract.callSmartContractGetFunc('getHolonCitizens', [holonAddress]);
+    const allCitizens = await listHolonCitizens(holonContract, holonAddress);
     const citizenIdx = allCitizens.map(a => a.toLowerCase()).indexOf(storage.address.toLowerCase())
     //if not then add in the citizen's list
     // if (citizenIdx < 0)
-    await holonContract.createTransaction('addHolonCitizen', [holonAddress, storage.address])
+
+    const params = [
+      { t: 'string', v: holonAddress },
+      { t: "address", v: storage.address }]
+    const signedMessage = await signMessage(params)
+    await holonContract.createTransaction('addHolonCitizen', [holonAddress, storage.address, signedMessage.signature])
 
     return { success: true, message: 'citizen added  in the holon citizen list' }
   }
@@ -373,7 +374,7 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
     }
     const storage = await getStorageValues()
     //check if citizen is already in a citizen's list of holon
-    const allCitizens = await holonContract.callSmartContractGetFunc('getHolonCitizens', [holonAddress]);
+    const allCitizens = await listHolonCitizens(holonContract, holonAddress);
     const citizenIdx = allCitizens.map(a => a.toLowerCase()).indexOf(storage.address.toLowerCase())
     //if yes then remove from the donor's list
     if (citizenIdx >= 0)
