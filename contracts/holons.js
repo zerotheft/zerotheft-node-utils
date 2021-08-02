@@ -57,6 +57,38 @@ const listHolonIds = async (contract = null) => {
 }
 
 /**
+ * List all the addresses of a citizens who selected a holon
+ * @param contract Instanace of ZTMHolons contract
+ * @param holonID ID of holon whose users need to be extracted
+ * @return allCitizens Object with list of citizens addresses per contract version
+ * @return allCitizensCount Total number of citizens who selected a holon
+ */
+const listHolonCitizens = async (contract = null, holonID) => {
+  if (contract === null) {
+    contract = getHolonContract()
+  }
+  const verRes = await getHolonContractVersion(contract);
+  let version = verRes.number;
+  let allCitizens = {}
+  let allCitizensCount = 0;
+  while (version > 0) {
+    let versionCitizens = [];
+
+    try {
+      let citizens = await contract.callSmartContractGetFunc('getHolonCitizens', [holonID, version])
+      versionCitizens = versionCitizens.concat(citizens)
+    }
+    catch (e) {
+      console.log(e.message)
+    }
+    allCitizens[`v${version}`] = versionCitizens
+    allCitizensCount += versionCitizens.length
+    version--;
+  }
+  return { allCitizens, allCitizensCount }
+}
+
+/**
  * Get all the holon IDs from indices and their respective belonging version.
 */
 const getHolonIds = async (contract = null) => {
@@ -338,6 +370,7 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
 module.exports = {
   contractIdentifier,
   listHolonIds,
+  listHolonCitizens,
   getHolonIds,
   getHolonContractVersion,
   getHolonIdByAddress,
