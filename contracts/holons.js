@@ -258,9 +258,13 @@ const holonComplaints = async (feedbackContract, holonID) => {
       const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToHolon', [holonID, complainer]);
       const cres = await getCitizenIdByAddress(complainer);
       const citizenInfo = await getCitizen(cres.citizenID);
-      for (let i = 1; i <= parseInt(countRes.holonCommentsCount); i++) {
-        let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, complainer, i, countRes.fromContractVersion]);
-        complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
+      for (let i = 1; i <= parseInt(countRes); i++) {
+        try {
+          let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, complainer, i]);
+          complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
+        } catch (e) {
+          console.log(e)
+        }
       }
     })
     await Promise.all(complaintPromises)
@@ -309,8 +313,8 @@ const citizenFeedback = async (holonID, citizenAddress, feedbackContract = null)
     const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToHolon', [holonID, citizenAddress]);
     const cres = await getCitizenIdByAddress(citizenAddress);
     const citizenInfo = await getCitizen(cres.citizenID);
-    for (let i = 1; i <= parseInt(countRes.holonCommentsCount); i++) {
-      let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, citizenAddress, i, countRes.fromContractVersion]);
+    for (let i = 1; i <= parseInt(countRes); i++) {
+      let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToHolon', [holonID, citizenAddress, i]);
       complaints[complaintInfo.date] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.date }
     }
     return { success: true, ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, updatedAt: feedback.updatedAt }, complaintData: complaints };
@@ -377,8 +381,12 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
     const allCitizens = await listHolonCitizens(holonContract, holonAddress);
     const citizenIdx = allCitizens.map(a => a.toLowerCase()).indexOf(storage.address.toLowerCase())
     //if yes then remove from the donor's list
+    const params = [
+      { t: 'string', v: holonAddress },
+      { t: "address", v: storage.address }]
+    const signedMessage = await signMessage(params)
     if (citizenIdx >= 0)
-      await holonContract.createTransaction('removeHolonCitizen', [holonAddress, storage.address])
+      await holonContract.createTransaction('removeHolonCitizen', [holonAddress, storage.address, signedMessage.signature])
 
     return { success: true, message: 'citizen removed  from the holon citizens list' }
   }
