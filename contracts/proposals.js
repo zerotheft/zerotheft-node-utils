@@ -84,11 +84,11 @@ const getProposalContractVersion = async (proposalContract = null) => {
     proposalContract = await getProposalContract()
   }
   try {
-    const version = await proposalContract.callSmartContractGetFunc('getContractVersion')
+    const versionNumber = await proposalContract.callSmartContractGetFunc('getContractVersion')
     return {
       success: true,
-      version,
-      number: version.split('v')[1]
+      version: `v${versionNumber}`,
+      number: versionNumber,
     }
   } catch (e) {
     return { success: false, error: e.message }

@@ -12,12 +12,12 @@ const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => 
     citizenContract = await getCitizenContract()
   }
   try {
-    const { citizenIndex, contractVersion } = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
+    const { citizenID, citizenIndex, contractVersion } = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
     if (parseInt(citizenIndex) === 0) throw new Error("citizen not found")
     return {
       success: true,
       citizenIndex,
-      citizenID: `${contractIdentifier}:${contractVersion}:${citizenIndex}`
+      citizenID
     }
   } catch (e) {
     return { success: false, error: e.message }
@@ -34,10 +34,11 @@ const getCitizenContractVersion = async (citizenContract = null) => {
     citizenContract = await getCitizenContract()
   }
   try {
-    const version = await citizenContract.callSmartContractGetFunc('getContractVersion')
+    const versionNumber = await citizenContract.callSmartContractGetFunc('getContractVersion')
     return {
       success: true,
-      version
+      version: `v${versionNumber}`,
+      number: versionNumber,
     }
   } catch (e) {
     return { success: false, error: e.message }
@@ -77,8 +78,8 @@ const listCitizenIds = async (contract = null) => {
   if (contract === null) {
     contract = getCitizenContract()
   }
-  const latestVersion = await contract.callSmartContractGetFunc('getContractVersion');
-  let version = latestVersion.split('v')[1];
+  const verRes = await getCitizenContractVersion(contract);
+  let version = verRes.number;
   let allVoters = {}
   let allVotersCount = 0;
   while (version > 0) {

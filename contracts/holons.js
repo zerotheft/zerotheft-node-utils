@@ -17,11 +17,11 @@ const getHolonContractVersion = async (holonContract = null) => {
     holonContract = await getProposalContract()
   }
   try {
-    const version = await holonContract.callSmartContractGetFunc('getContractVersion')
+    const versionNumber = await holonContract.callSmartContractGetFunc('getContractVersion')
     return {
       success: true,
-      version,
-      number: version.split('v')[1]
+      version: `v${versionNumber}`,
+      number: versionNumber,
     }
   } catch (e) {
     return { success: false, error: e.message }
@@ -43,8 +43,8 @@ const listHolonIds = async (contract = null) => {
     let howMany = 1000; // Get thousands at a time
     try {
       do {
-        let voters = await contract.callSmartContractGetFunc('getHolonIndicesByCursor', [cursor, howMany, version])
-        versionHolons = versionHolons.concat(voters)
+        let holons = await contract.callSmartContractGetFunc('getHolonIndicesByCursor', [cursor, howMany, version])
+        versionHolons = versionHolons.concat(holons)
         cursor = cursor + howMany
       } while (1)
     }

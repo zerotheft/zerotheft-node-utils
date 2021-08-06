@@ -9,7 +9,6 @@ const access = require('./utils/accessControl')
 const helpers = require('./utils/helpers')
 
 const paths = require('./contracts/paths')
-const issues = require('./contracts/issues')
 const proposals = require('./contracts/proposals')
 const citizens = require('./contracts/citizens')
 const holons = require('./contracts/holons')
@@ -24,7 +23,6 @@ module.exports = {
     storage,
     access,
     paths,
-    issues,
     proposals,
     citizens,
     encryptor,

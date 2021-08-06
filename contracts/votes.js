@@ -15,11 +15,11 @@ const getVoteContractVersion = async (voteContract = null) => {
     voteContract = await getVoteContract()
   }
   try {
-    const version = await voteContract.callSmartContractGetFunc('getContractVersion')
+    const versionNumber = await voteContract.callSmartContractGetFunc('getContractVersion')
     return {
       success: true,
-      version,
-      number: version.split('v')[1]
+      version: `v${versionNumber}`,
+      number: versionNumber,
 
     }
   } catch (e) {
