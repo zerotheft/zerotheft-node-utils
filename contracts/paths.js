@@ -6,7 +6,6 @@ const yaml = require('js-yaml')
 const { getPathContract, getProposalContract, getVoteContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage');
-const { getCitizen } = require('./citizens')
 const { APP_PATH } = require('../config')
 const { contractIdentifier: proposalIdentifier, getProposalContractVersion, getProposalDetails } = require('./proposals')
 const homedir = APP_PATH || require('os').homedir()
@@ -34,7 +33,8 @@ const allNations = async () => {
   const nations = ['USA']
   return Promise.all(nations.map(async nation => {
     //fetch path yaml chunks based on nation hash
-    const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [])
+    const hierarchyAreaBytes = convertStringToHash("RiggedEconomy");
+    const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [hierarchyAreaBytes])
     const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
     if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
       const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
@@ -77,9 +77,10 @@ const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
 /*
 * Return paths based on nation
 */
-const pathsByNation = async (nation = 'USA') => {
+const pathsByNation = async (nation = 'USA', area = 'RiggedEconomy') => {
   const contract = getPathContract()
-  const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [])
+  const hierarchyAreaBytes = convertStringToHash(area);
+  const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [hierarchyAreaBytes])
   const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
   if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
     const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
