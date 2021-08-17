@@ -3,12 +3,11 @@ const PromisePool = require('@supercharge/promise-pool')
 const dir = require('path')
 const splitFile = require('split-file');
 const yaml = require('js-yaml')
-const { getPathContract, getProposalContract, getVoterContract } = require('../utils/contract')
+const { getPathContract, getProposalContract, getVoteContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage');
-const { getUser } = require('./users')
 const { APP_PATH } = require('../config')
-const { getProposalDetails } = require('./proposals')
+const { contractIdentifier: proposalIdentifier, getProposalContractVersion, getProposalDetails } = require('./proposals')
 const homedir = APP_PATH || require('os').homedir()
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
@@ -17,35 +16,36 @@ if (!fs.existsSync(pathYamlDir)) {
 }
 
 const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) => {
-  const yamlBlock = await contract.callSmartContractGetFunc('getPathYaml', [yamlBlockHash], 900000)
+  const yamlBlock = await contract.callSmartContractGetFunc('getEconomicHierarchyYamlBlock', [yamlBlockHash], 900000)
   const outpuFileName = `${pathYamlDir}/output-${index}`;
   fs.writeFileSync(outpuFileName, yamlBlock.content, 'utf-8');
 
   allOutputs.push(outpuFileName)
 
-  if (!yamlBlock[4]) {
-    await fetchPathYaml(yamlBlock[1], index + 1, allOutputs)
+  if (yamlBlock.nextYamlBlock !== "") {
+    await fetchPathYaml(yamlBlock.nextYamlBlock, index + 1, allOutputs)
   }
   return allOutputs
 }
 
 const allNations = async () => {
   const contract = getPathContract()
-  const nationHashes = await contract.callSmartContractGetFunc('allNations')
-
-  return Promise.all(nationHashes.map(async hash => {
+  const nations = ['USA']
+  return Promise.all(nations.map(async nation => {
     //fetch path yaml chunks based on nation hash
-    const path = await contract.callSmartContractGetFunc('getPath', [hash])
-    const pathDir = `${pathYamlDir}/${path.nation}-hierarchy-v${path.version}.yaml`;
+    const hierarchyAreaBytes = convertStringToHash("RiggedEconomy");
+    const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [hierarchyAreaBytes])
+    const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
     if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
-      outputFiles = await fetchPathYaml(contract, path.yamlBlock, 1)
+      const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
+      outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
       await splitFile.mergeFiles(outputFiles, pathDir)
     }
     pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
 
     return {
       pathRoot: path.pathRoot,
-      nation: path.nation,
+      nation,
       hierarchy: pathYamlContent,
       version: path.version,
       pathCrumbs: makePathCrumbs(pathYamlContent)
@@ -55,7 +55,7 @@ const allNations = async () => {
 
 const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
   Object.keys(path).map((key) => {
-    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name'].includes(key)) return
+    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version'].includes(key)) return
     Object.keys(path).forEach((item) => {
       if (paths.indexOf(item) > 0)
         paths.length = paths.indexOf(item)
@@ -77,12 +77,14 @@ const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
 /*
 * Return paths based on nation
 */
-const pathsByNation = async (nation = 'USA') => {
+const pathsByNation = async (nation = 'USA', area = 'RiggedEconomy') => {
   const contract = getPathContract()
-  const path = await contract.callSmartContractGetFunc('getPath', [convertStringToHash(nation)])
-  const pathDir = `${pathYamlDir}/${path.nation}-hierarchy-v${path.version}.yaml`;
+  const hierarchyAreaBytes = convertStringToHash(area);
+  const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [hierarchyAreaBytes])
+  const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`;
   if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
-    outputFiles = await fetchPathYaml(contract, path.yamlBlock, 1)
+    const hierarchyYaml = await contract.callSmartContractGetFunc('getEconomicHierarchyYaml', [path.yamlOfEconomicHierarchy], 900000)
+    outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, pathDir)
   }
   pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
@@ -95,20 +97,18 @@ const getUmbrellaPaths = async (nation = 'USA') => {
   try {
     const pathData = await pathsByNation(nation)
     const paths = pathData[nation]
-    let umbrellas = []
+    let umbrellas = {}
     const traversePath = async (pathNode, path = '') => {
       for (let enode of Object.keys(pathNode)) {
-        if (['display_name', 'leaf', 'umbrella', 'parent'].includes(enode)) {
+        if (enode === "metadata" && pathNode[enode]['umbrella']) {
+          umbrellas[path.toString()] = {
+            "value_parent": pathNode[enode]["value_parent"]
+          }
+        }
+        let newPath = path ? `${path}/${enode}` : enode
+        if (['display_name', 'leaf', 'umbrella', 'parent', 'metadata'].includes(enode)) {
           continue
         }
-        // console.log('isUmbrella', enode)
-        // console.log('isumb', pathNode[enode]['umbrella'])
-        let newPath = path ? `${path}/${enode}` : enode
-        if (pathNode[enode]['umbrella']) {
-          umbrellas.push(newPath)
-        }
-        // console.log('next', pathNode[enode], newPath)
-
         traversePath(pathNode[enode], newPath)
       }
       return umbrellas
@@ -116,6 +116,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
     traversePath(paths)
 
     updateUmbrellaPaths({ paths: umbrellas })
+
     return umbrellas
   } catch (e) {
     throw new Error(`getUmbrellaPaths:: ${e.message}`)
@@ -124,71 +125,80 @@ const getUmbrellaPaths = async (nation = 'USA') => {
 /*
 * Return all the information of path including proposals and votes
 */
-const getPathDetail = async (path, year, proposalContract = null, voterContract = null, withInfo) => {
+const getPathDetail = async (path, proposalContract = null, voterContract = null, withInfo) => {
   let allVotesInfo = []
   try {
     if (!proposalContract) {
       proposalContract = getProposalContract()
     }
     if (!voterContract) {
-      voterContract = getVoterContract()
+      voterContract = getVoteContract()
     }
-    const proposalIds = await proposalContract.callSmartContractGetFunc('proposalsPerPathYear', [convertStringToHash(path), year])
-    if (proposalIds.length === 0) throw new Error(`no proposals found for ${path} - ${year}`)
-    let { results: pathDetails, errors } = await PromisePool
-      .withConcurrency(10)
-      .for(proposalIds)
-      .process(async id => {
-        let proposal
-        try {
-          proposal = await getProposalDetails(id, proposalContract, voterContract)
-        }
-        catch (e) {
-          console.log('getPathDetail Error::', id, e)
-          return null
-        }
+    let allDetails = []
+    let count = 0;
+    const verRes = await getProposalContractVersion(proposalContract)
+    while (verRes.number > 0) {
 
-        //get rid of un-necessary  keys
-        ['detail', 'ratings', 'complaints', 'description'].forEach(e => delete proposal[e]);
+      let { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [convertStringToHash(path), verRes.number])
+      if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
+      let { results: pathDetails, errors } = await PromisePool
+        .withConcurrency(10)
+        .for(propIds)
+        .process(async id => {
+          id = `${proposalIdentifier}:v${verRes.number}:${id}`
+          count++;
+          let proposal
+          try {
+            proposal = await getProposalDetails(id, proposalContract)
+          }
+          catch (e) {
+            console.log('getPathDetail Error::', id, e)
+            return null
+          }
 
-        if (!withInfo) {
-          // pathDetails.push(proposal)
-          return proposal
-        }
+          //get rid of un-necessary  keys
+          ['detail', 'ratings', 'complaints', 'description', 'proposal_hash'].forEach(e => delete proposal[e]);
+          if (!withInfo) {
+            return proposal
+          }
 
-        let { results: voteInfo, errors } = await PromisePool
-          .withConcurrency(10)
-          .for(proposal.votes)
-          .process(async vid => {
-            try {
-              let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVotes', [parseInt(vid)])
-              // let userInfo = await getUser(singleVoterInfo.voter)
-              return {
-                voterId: singleVoterInfo.voter,
-                voteId: vid,
-                voteType: singleVoterInfo.voteType,
-                altTheftAmt: singleVoterInfo.altTheftAmt,
-                votedDate: new Date(singleVoterInfo.date * 1000),
-                path: path.split('/').slice(1).join('/'),
-                proposalId: id,
-                year: proposal.year
+          let { results: voteInfo, errors } = await PromisePool
+            .withConcurrency(10)
+            .for(proposal.votes)
+            .process(async vid => {
+              try {
+                let singleVoterInfo = await voterContract.callSmartContractGetFunc('getVote', [vid])
+                // let citizenInfo = await getCitizen(singleVoterInfo.voter)
+                return {
+                  voterId: singleVoterInfo.voter,
+                  voteId: vid,
+                  voteType: singleVoterInfo.voteIsTheft,
+                  altTheftAmt: singleVoterInfo.customTheftAmount === "" ? {} : JSON.parse(singleVoterInfo.customTheftAmount),
+                  path: path.split('/').slice(1).join('/'),
+                  proposalId: id,
+                  votedYears: Object.keys(proposal.theftYears).map(y => parseInt(y))
+                }
               }
-            }
-            catch (e) {
-              console.log('getPathDetail(getVotes)', e)
-              return null
-            }
-          })
-        allVotesInfo = allVotesInfo.concat(voteInfo)
-        console.log(`Proposal ${id} detail fetched(year ${year})`)
+              catch (e) {
+                console.log('getPathDetail(getVote)', e)
+                return null
+              }
+            })
+          allVotesInfo = allVotesInfo.concat(voteInfo)
+          console.log(`Proposal: ${path} ::  ${id} detail fetched`)
 
-        return {
-          ...proposal,
-          path: path.split('/').slice(1).join('/'),
-          voteInfo
-        }
-      })
-    return { pathDetails, allVotesInfo, success: true }
+          return {
+            ...proposal,
+            path: path.split('/').slice(1).join('/'),
+            voteInfo
+          }
+        })
+
+      allDetails = allDetails.concat(pathDetails)
+      verRes.number--;
+
+    }
+    return { allDetails, allVotesInfo, success: true }
   } catch (e) {
     return { success: false, message: e.message }
   }

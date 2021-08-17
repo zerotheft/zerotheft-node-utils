@@ -2,7 +2,7 @@ const Web3 = require('web3')
 const fs = require('fs')
 
 const EthereumTx = require('ethereumjs-tx').Transaction
-const { ensureAccountLoginAndGetDetails, updateStorageValues } = require('./storage')
+const { ensureAccountLoginAndGetDetails, updateStorageValues, getStorageValues } = require('./storage')
 const { fetch } = require('./api')
 const { HTTP_PROVIDER, ETH_HTTP_PROVIDER, WEB_PROVIDER, ADDRESS_ENCRYPT_KEY, MODE, GAS_PRICE } = require('../config')
 const config = require('../config')
@@ -50,35 +50,7 @@ const decryptEthAddress = obj => {
   return web3.eth.accounts.decrypt(obj, ADDRESS_ENCRYPT_KEY)
 }
 
-/**
- * Runs smart contract for the user
- * @param contract: Contents of json file
- * @param methodName: method of a contract that you want to call
- * @param args: arguments required in smart contract(Pass it in the form of array)
- * @param gasLimit
- * @returns {Promise}
- */
-// const createTransaction = async (contract, methodName, args = [], gasLimit = 3000000) => {
-//   const storage = await ensureAccountLoginAndGetDetails()
-//   if (!storage) return
-//
-//   try {
-//
-//     const web3 = initiateWeb3()
-//     const [instance, address] = await instantiateContract(web3, contract)
-//     const functionAbi = instance.methods[methodName](...args).encodeABI()
-//     const without0x = storage.key.split('0x')[1]
-//     const privateKey = without0x || storage.key
-//
-//     return carryTransaction(web3, storage.address, privateKey, {
-//       to: address,
-//       data: functionAbi,
-//       gasLimit: web3.utils.toHex(gasLimit),
-//     })
-//   } catch (e) {
-//     throw (e)
-//   }
-// }
+
 
 const transferFund = async (from, to, privateKey, amount, accType = 'regular', gasPrice = GAS_PRICE) => {
   try {
@@ -137,7 +109,6 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     // const pend = await web3.eth.getTransactionCount(address, 'pending')
     let customCommon = {}
     const txCount = await web3.eth.getTransactionCount(address)
-    // console.log(pend, txCount)
     let txArgs = {
       "chain": config.network
     }
@@ -154,14 +125,13 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
         gasPrice: web3.utils.toHex(web3.utils.toWei((GAS_PRICE || "1").toString(), 'gwei'))
       }, ...obj
     }
-    // console.log(txObject)
     let networkId, chainId;
 
     if (networkType !== 'eth' && (config.network === "kotti" || config.network === "mainnet")) {
       networkId = (config.network === "kotti") ? 6 : 1;
       chainId = (config.network === "kotti") ? 6 : 61;
     } else if (config.network === "geth") {
-      networkId = chainId = 1440;
+      networkId = chainId = config.NETWORK_ID;
     }
 
     let tx;
@@ -209,6 +179,49 @@ const convertStringToHash = (item) => {
   return val
 }
 
+/**
+ * Conversts string to correct bytes32
+ **/
+const convertToAscii = (item) => {
+  const web3 = initiateWeb3()
+  const val = web3.utils.asciiToHex(item)
+  return val
+}
+
+/**
+ * This method converts the hex value to respective Ascii
+ * @params hexValue - value that is ready or conversion
+ * @returns ascii value of respective hex value
+ **/
+const convertHexToAscii = (hexValue) => {
+  const web3 = initiateWeb3()
+  const val = web3.utils.hexToAscii(hexValue)
+  return val
+}
+
+
+/**
+ * Sign a params and returns a signed message
+ * @params params parameters to generate a sha3 hash value
+ * @params signer account details of a signer
+ * @returns signedMessage The signature
+ **/
+const signMessage = async (params, signer = null) => {
+  if (!signer) signer = getStorageValues()
+
+  const web3 = initiateWeb3()
+  let sha3 = web3.utils.soliditySha3(...params)
+  const signedMessage = await web3.eth.accounts.sign(sha3, signer.key)
+  // const signedMessage = await web3.eth.sign(sha3, signer.address)
+  // let signedMessage = await web3.eth.sign("0x5fe7f977e71dba2ea1a68e21057beebb9be2ac30c6410aa38d4f3fbe41dcffd2", "0xCD4f2b154dd0553bfC51cCE4356a23956d97490d")
+
+  // console.log(sha3, "====", signer, "===", signedMessage)
+
+  // const recoer = await web3.eth.accounts.recover("0x5fe7f977e71dba2ea1a68e21057beebb9be2ac30c6410aa38d4f3fbe41dcffd2", signedMessage);
+  // console.log(recoer)
+  return signedMessage
+}
+
 module.exports = {
   createAccount,
   importByPrivateKey,
@@ -221,5 +234,8 @@ module.exports = {
   convertStringToBytes,
   convertStringToHash,
   carryTransaction,
-  createMockAccount
+  createMockAccount,
+  convertToAscii,
+  convertHexToAscii,
+  signMessage
 }
