@@ -179,11 +179,26 @@ const convertStringToHash = (item) => {
   return val
 }
 
+/**
+ * Conversts string to correct bytes32
+ **/
 const convertToAscii = (item) => {
   const web3 = initiateWeb3()
   const val = web3.utils.asciiToHex(item)
   return val
 }
+
+/**
+ * This method converts the hex value to respective Ascii
+ * @params hexValue - value that is ready or conversion
+ * @returns ascii value of respective hex value
+ **/
+const convertHexToAscii = (hexValue) => {
+  const web3 = initiateWeb3()
+  const val = web3.utils.hexToAscii(hexValue)
+  return val
+}
+
 
 /**
  * Sign a params and returns a signed message
@@ -221,5 +236,6 @@ module.exports = {
   carryTransaction,
   createMockAccount,
   convertToAscii,
+  convertHexToAscii,
   signMessage
 }
