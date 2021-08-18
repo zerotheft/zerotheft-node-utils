@@ -37,7 +37,7 @@ const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) =>
   // if prior Vote is present
   if (voteData.voteReplaces !== "") {
     const _priorVote = await voterC.callSmartContractGetFunc('getVote', [voteData.voteReplaces])
-    let _priorPropID = _priorVote.voteIsTheft ? _priorVote.yesTheftProposal : _priorVote.noTheftProposal
+    let _priorPropID = _priorVote.voteIsTheft === "True" ? _priorVote.yesTheftProposal : _priorVote.noTheftProposal
     let _priorPVotes = get(rollups.proposalVotes, (_priorPropID), [])
     remove(_priorPVotes, (_v) => {
       return (_v === voteData.voteReplaces)
@@ -80,7 +80,7 @@ const citizenPriorVote = async body => {
     let priorvoteID = (!isEmpty(citizenSpecificVotes) && citizenSpecificVotes[body.address]) ? get(citizenSpecificVotes[body.address], convertStringToHash(body.url), 0) : 0
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
-    let proposalID = vote.voteIsTheft ? vote.yesTheftProposal : vote.noTheftProposal
+    let proposalID = vote.voteIsTheft === "True" ? vote.yesTheftProposal : vote.noTheftProposal
     const proposal = await getProposalDetails(proposalID, proposalC)
 
     return { success: true, id: priorvoteID, pid: proposal.id, ...vote }
@@ -107,7 +107,7 @@ const voteDataRollups = async body => {
     const voteID = `${contractIdentifier}:${voteRes.version}:${voteIndex}`
     let { voter, voteIsTheft, yesTheftProposal, noTheftProposal } = await voterC.callSmartContractGetFunc('getVote', [voteID])
     const { voteReplaces } = await voterC.callSmartContractGetFunc('getVoteExtra', [voteID])
-    let proposalID = voteIsTheft ? yesTheftProposal : noTheftProposal
+    let proposalID = voteIsTheft === "True" ? yesTheftProposal : noTheftProposal
     const proposalInfo = await proposalC.callSmartContractGetFunc('getProposal', [proposalID])
 
     let { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes } = await voteDataRollupsFile()
@@ -180,7 +180,7 @@ const getAllVoteIds = async () => {
         allVotes.push({
           "id": voteID,
           voter,
-          voteType: voteIsTheft,
+          voteType: voteIsTheft === "True",
           "proposal": proposalID,
           altTheftAmt: customTheftAmount,
           comment,

@@ -172,7 +172,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
                 return {
                   voterId: singleVoterInfo.voter,
                   voteId: vid,
-                  voteType: singleVoterInfo.voteIsTheft,
+                  voteType: singleVoterInfo.voteIsTheft === "True",
                   altTheftAmt: singleVoterInfo.customTheftAmount === "" ? {} : JSON.parse(singleVoterInfo.customTheftAmount),
                   path: path.split('/').slice(1).join('/'),
                   proposalId: id,
