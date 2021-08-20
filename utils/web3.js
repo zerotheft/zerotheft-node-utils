@@ -83,25 +83,17 @@ const initiateWeb3 = (provider, accType = 'regular') => {
 }
 
 const instantiateContract = async (web3, contractName) => {
-  if (MODE === 'development' || MODE === 'private') {
-    let contract = {}
-    if (MODE === 'development')
-      contract = JSON.parse(fs.readFileSync(`${config.ZERO_THEFT_CONTRACT}/${contractName}.json`))
-    else
-      contract = await fetch(`${config.ZERO_THEFT_CONTRACT}/${contractName}.json`)
-    const networkId = await web3.eth.net.getId()
-    const deployedNetwork = contract.networks[networkId]
-    return [new web3.eth.Contract(contract.abi, deployedNetwork && deployedNetwork.address), deployedNetwork.address]
-  } else {
-    const { address, implementation } = config[contractName]
-    // let res = {}
-    let res = await fetch(`https://blockscout.com/etc/${config.network}/api?module=contract&action=getabi&address=${implementation}`)
-    // if (config.network === "kotti" || config.network === "mainnet") {
-    // } else {
-    //   res = await fetch(`https://api${config.network ? '-' + config.network : ''}.etherscan.io/api?module=contract&action=getabi&address=${implementation}&apikey=${config.ETHERSCAN_API_KEY}`)
-    // }
-    return [new web3.eth.Contract(JSON.parse(res.result), address), address]
+  let contract = {}
+  if (MODE === 'development') {
+    contract = JSON.parse(fs.readFileSync(`${config.ZERO_THEFT_CONTRACT}/${contractName}.json`))
   }
+  else { // Look s3 bucket for contract's artifacts when MODE is not development
+    contract = await fetch(`${config.ZERO_THEFT_CONTRACT}/${config.NETWORK_NAME}/${contractName}.json`)
+  }
+  const networkId = await web3.eth.net.getId()
+  const deployedNetwork = contract.networks[networkId]
+  return [new web3.eth.Contract(contract.abi, deployedNetwork && deployedNetwork.address), deployedNetwork.address]
+
 }
 
 const carryTransaction = async (web3, address, privateKey, obj, networkType = 'regular') => {
@@ -110,7 +102,7 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     let customCommon = {}
     const txCount = await web3.eth.getTransactionCount(address)
     let txArgs = {
-      "chain": config.network
+      "chain": config.NETWORK_NAME
     }
     if (MODE === 'production' && networkType === 'eth') {
       txArgs = { "chain": "mainnet" }
@@ -127,21 +119,21 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     }
     let networkId, chainId;
 
-    if (networkType !== 'eth' && (config.network === "kotti" || config.network === "mainnet")) {
-      networkId = (config.network === "kotti") ? 6 : 1;
-      chainId = (config.network === "kotti") ? 6 : 61;
-    } else if (config.network === "geth") {
+    if (networkType !== 'eth' && (config.NETWORK_NAME === "kotti" || config.NETWORK_NAME === "mainnet")) {
+      networkId = (config.NETWORK_NAME === "kotti") ? 6 : 1;
+      chainId = (config.NETWORK_NAME === "kotti") ? 6 : 61;
+    } else if (["privatenet", "devprivatenet"].includes(config.NETWORK_NAME)) {
       networkId = chainId = config.NETWORK_ID;
     }
 
     let tx;
-    if ((MODE === 'development' || MODE === 'private') && networkType !== 'eth' && config.network !== "geth") {
+    if ((MODE === 'development' || MODE === 'private') && networkType !== 'eth' && (config.NETWORK_NAME !== "privatenet" || config.NETWORK_NAME !== "devprivatenet")) {
       tx = new EthereumTx(txObject)
     } else {
       customCommon = Common.default.forCustomChain(
         "mainnet",
         {
-          name: config.network,
+          name: config.NETWORK_NAME,
           networkId,
           chainId
         },
