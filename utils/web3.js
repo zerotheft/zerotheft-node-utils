@@ -127,7 +127,7 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     }
 
     let tx;
-    if ((MODE === 'development' || MODE === 'private') && networkType !== 'eth' && (config.NETWORK_NAME !== "privatenet" || config.NETWORK_NAME !== "devprivatenet")) {
+    if ((MODE === 'development' || MODE === 'private') && networkType !== 'eth' && config.NETWORK_NAME !== "privatenet" && config.NETWORK_NAME !== "devprivatenet") {
       tx = new EthereumTx(txObject)
     } else {
       customCommon = Common.default.forCustomChain(
