@@ -54,6 +54,11 @@ const importByPrivateKey = async privateKey => {
   }
 }
 
+/**
+ * Decrypt the ethere address
+ * @param {Object} obj - ethereum address detail that needs to be decrypted
+ * @return {Object} decrypted information as a JSON object
+ */
 const decryptEthAddress = obj => {
   const web3 = initiateWeb3()
   return web3.eth.accounts.decrypt(obj, ADDRESS_ENCRYPT_KEY)
