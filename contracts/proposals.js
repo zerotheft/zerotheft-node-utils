@@ -1,9 +1,9 @@
 const fs = require('fs')
 const dir = require('path')
 const PromisePool = require('@supercharge/promise-pool')
-const splitFile = require('split-file');
+const splitFile = require('split-file')
 const yaml = require('js-yaml')
-const { mean, get, isEmpty } = require('lodash');
+const { mean, get, isEmpty } = require('lodash')
 const { getCitizen, getCitizenIdByAddress } = require('./citizens')
 const { APP_PATH } = require('../config')
 const { convertStringToHash } = require('../utils/web3')
@@ -13,29 +13,30 @@ const { getFeedbackContractVersion } = require('./feedbacks')
 const { getGithubTemplate } = require('../utils/github')
 const { exportsDirNation, voteDataRollupsFile } = require('../utils/common')
 const homedir = APP_PATH || require('os').homedir()
+
 const tmpPropDir = dir.join(homedir, '/tmp')
-const contractIdentifier = "ZTMProposal"
+const contractIdentifier = 'ZTMProposal'
 
 if (!fs.existsSync(tmpPropDir)) {
-  fs.mkdirSync(tmpPropDir, { recursive: true });
+  fs.mkdirSync(tmpPropDir, { recursive: true })
 }
 /**
  * Scan blockchain and return array of proposal blocks
- * @param {Object} proposalContract 
- * @param {string} yamlBlockHash 
- * @param {integer} index 
- * @param {Array} allOutputs 
- * @param {String} initialHash 
- * @param {integer} finalIndex 
+ * @param {Object} proposalContract
+ * @param {string} yamlBlockHash
+ * @param {integer} index
+ * @param {Array} allOutputs
+ * @param {String} initialHash
+ * @param {integer} finalIndex
  * @returns Array of all chunks
  */
 const fetchProposalYaml = async (proposalContract, yamlBlockKey, index, allOutputs = [], initialHash, finalIndex) => {
   const yamlBlock = await proposalContract.callSmartContractGetFunc('getProposalYamlBlock', [yamlBlockKey])
   const initHash = initialHash || yamlBlockKey
-  const outpuFileName = `${tmpPropDir}/${initHash}-${index}`;
-  fs.writeFileSync(outpuFileName, yamlBlock.content, 'utf-8');
+  const outpuFileName = `${tmpPropDir}/${initHash}-${index}`
+  fs.writeFileSync(outpuFileName, yamlBlock.content, 'utf-8')
   allOutputs.push(outpuFileName)
-  if (yamlBlock.nextYamlBlock !== "" && !finalIndex) {
+  if (yamlBlock.nextYamlBlock !== '' && !finalIndex) {
     await fetchProposalYaml(proposalContract, yamlBlock.nextYamlBlock, index + 1, allOutputs, initHash)
   }
   return allOutputs
@@ -43,13 +44,13 @@ const fetchProposalYaml = async (proposalContract, yamlBlockKey, index, allOutpu
 
 /**
  * Finds stolen years from the yaml Content
- * @param {object} yamlContent 
+ * @param {object} yamlContent
  * @returns Array of years
  */
-const yamlStolenYears = (yamlContent) => {
-  let years = []
-  Object.keys(yamlContent).forEach((key) => {
-    let val = parseInt(key.replace('stolen_', ''))
+const yamlStolenYears = yamlContent => {
+  const years = []
+  Object.keys(yamlContent).forEach(key => {
+    const val = parseInt(key.replace('stolen_', ''))
     if (!isNaN(val)) {
       years.push(val)
     }
@@ -58,14 +59,14 @@ const yamlStolenYears = (yamlContent) => {
 }
 /**
  * Gives proposal theft years amount info and total theft Amount
- * @param {object} file 
+ * @param {object} file
  * @returns theftYears - a years wise thefmt amount
  * @returns theftAmt - total theftAmount of a proposal.
  */
-const proposalYearTheftInfo = (file) => {
-  let theftYears = {}
+const proposalYearTheftInfo = file => {
+  const theftYears = {}
   let theftAmt = 0
-  yamlStolenYears(file).forEach((y) => {
+  yamlStolenYears(file).forEach(y => {
     if (`stolen_${y}` in file) {
       theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
       theftAmt += theftYears[y]
@@ -105,54 +106,55 @@ const getProposalIDByIndex = async (proposalIndex, proposalContract = null) => {
     proposalContract = await getProposalContract()
   }
   try {
-    const contractVersion = await proposalContract.callSmartContractGetFunc('getContractVersion',)
+    const contractVersion = await proposalContract.callSmartContractGetFunc('getContractVersion')
 
     return {
       success: true,
       proposalIndex,
-      proposalID: `${contractIdentifier}:${contractVersion}:${proposalIndex}`
+      proposalID: `${contractIdentifier}:${contractVersion}:${proposalIndex}`,
     }
   } catch (e) {
     return { success: false, error: e.message }
   }
 }
 
-
 /*
-* List proposal ids only
-*/
+ * List proposal ids only
+ */
 const listProposalIds = async (contract = null) => {
   if (!contract) {
     contract = getProposalContract()
   }
-  let verRes = await getProposalContractVersion(contract)
-  let allProposals = {}
-  let allProposalsCount = 0;
+  const verRes = await getProposalContractVersion(contract)
+  const allProposals = {}
+  let allProposalsCount = 0
   while (verRes.number > 0) {
-    let versionProposals = [];
-    let cursor = 0;
-    let howMany = 1000; // Get thousands at a time
+    let versionProposals = []
+    let cursor = 0
+    const howMany = 1000 // Get thousands at a time
     try {
       do {
-        let proposalIds = await contract.callSmartContractGetFunc('getproposalIndicesByCursor', [cursor, howMany, verRes.number])
+        const proposalIds = await contract.callSmartContractGetFunc('getproposalIndicesByCursor', [
+          cursor,
+          howMany,
+          verRes.number,
+        ])
         versionProposals = versionProposals.concat(proposalIds)
-        cursor = cursor + howMany
+        cursor += howMany
       } while (1)
-    }
-    catch (e) {
+    } catch (e) {
       console.log(e.message)
     }
     allProposals[verRes.version] = versionProposals
     allProposalsCount += versionProposals.length
-    verRes.number--;
+    verRes.number--
   }
   return { allProposals, allProposalsCount }
 }
 
-
 /*
-* Return proposal details based on proposal IDs
-*/
+ * Return proposal details based on proposal IDs
+ */
 const getProposalDetails = async (proposalId, proposalContract = null) => {
   if (!proposalContract) {
     proposalContract = getProposalContract()
@@ -161,23 +163,22 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
   const filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
   if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
     const proposalYaml = await proposalContract.callSmartContractGetFunc('getProposalYaml', [proposal.yamlBlock])
-    let outputFiles = await fetchProposalYaml(proposalContract, proposalYaml.firstBlock, 1)
+    const outputFiles = await fetchProposalYaml(proposalContract, proposalYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, filePath)
-
   }
 
+  const { proposalVotes } = await voteDataRollupsFile()
 
-  let { proposalVotes } = await voteDataRollupsFile()
-
-  let file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
-  let { theftYears, theftAmt } = proposalYearTheftInfo(file)
-  let summary = `$${abbreviateNumber(theftAmt)}`
-  //get ratings of proposal
+  const file = yaml.load(fs.readFileSync(filePath, 'utf-8'))
+  const { theftYears, theftAmt } = proposalYearTheftInfo(file)
+  const summary = `$${abbreviateNumber(theftAmt)}`
+  // get ratings of proposal
   const feedbacks = await proposalFeedback(proposalId, proposalContract)
   const ratings = get(feedbacks, 'ratingData', 0)
   const complaints = get(feedbacks, 'complaintData', 0)
-  if (fs.existsSync(filePath))
+  if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath)
+  }
   // outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
 
   return {
@@ -192,7 +193,7 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
     description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
     ratings,
     complaints,
-    theftYears
+    theftYears,
   }
 }
 
@@ -203,21 +204,21 @@ const getProposals = async (proposalIDs, proposalContract = null) => {
   }
   const verRes = await getProposalContractVersion(proposalContract)
 
-  const promises = proposalIDs.map(async (proposalIndex) => {
+  const promises = proposalIDs.map(async proposalIndex => {
     const proposalID = `${contractIdentifier}:${verRes.version}:${proposalIndex}`
     const proposalDetail = await proposalContract.callSmartContractGetFunc('getProposal', [proposalID])
     const votesContract = getVoteContract()
     votesContract.init()
     // const votingDetail = await votesContract.callSmartContractGetFunc('getProposalVotesInfo', [proposalIndex])
-    let { proposalVotes } = await voteDataRollupsFile()
+    const { proposalVotes } = await voteDataRollupsFile()
 
     const mainProposal = {
-      "id": proposalIndex,
-      "owner": proposalDetail[0],
-      "summary": proposalDetail[1],
-      "votes": !isEmpty(proposalVotes) ? get(proposalVotes, proposalID, []) : [],
-      "proposal_hash": proposalDetail[3],
-      "created_at": proposalDetail[4]
+      id: proposalIndex,
+      owner: proposalDetail[0],
+      summary: proposalDetail[1],
+      votes: !isEmpty(proposalVotes) ? get(proposalVotes, proposalID, []) : [],
+      proposal_hash: proposalDetail[3],
+      created_at: proposalDetail[4],
     }
 
     return mainProposal
@@ -227,8 +228,8 @@ const getProposals = async (proposalIDs, proposalContract = null) => {
 }
 
 /*
-* Return all proposals
-*/
+ * Return all proposals
+ */
 const allProposals = async () => {
   const proposalContract = getProposalContract()
   proposalContract.init()
@@ -237,27 +238,31 @@ const allProposals = async () => {
 }
 
 /*
-* Watch Proposal and return
-*/
+ * Watch Proposal and return
+ */
 const proposalsFromEvents = async (methodName, args = {}) => {
   const proposalContract = getProposalContract()
   return await proposalContract.watchEvent('LogProposalCreation', methodName, args)
 }
 
 /*
-* Vote to a particular proposal using holon
-*/
+ * Vote to a particular proposal using holon
+ */
 const voteByHolon = async body => {
   const contract = getProposalContract()
-  return contract.createTransaction('holonVote', [true, body.proposalId, body.altTheftAmounts, body.comment || '', body.voter, body.signedMessage, body.priorVoteId], undefined, undefined, 'proxy')
+  return contract.createTransaction(
+    'holonVote',
+    [true, body.proposalId, body.altTheftAmounts, body.comment || '', body.voter, body.signedMessage, body.priorVoteId],
+    undefined,
+    undefined,
+    'proxy'
+  )
 }
 
 /*
-* Fetch proposal template based on path and return yaml content
-*/
-const getProposalTemplate = path => {
-  return getGithubTemplate(path)
-}
+ * Fetch proposal template based on path and return yaml content
+ */
+const getProposalTemplate = path => getGithubTemplate(path)
 /**
  * Get the rating information of a particular proposal
  * @param {object} feedbackContract - instance of a feedback contract
@@ -266,16 +271,16 @@ const getProposalTemplate = path => {
  */
 const proposalRating = async (feedbackContract, proposalID) => {
   try {
-    const verRes = await getFeedbackContractVersion(feedbackContract);
-    let version = verRes.number;
-    let allFeedbackers = [];
+    const verRes = await getFeedbackContractVersion(feedbackContract)
+    let version = verRes.number
+    let allFeedbackers = []
     while (version > 0) {
-      let feedbackers = await feedbackContract.callSmartContractGetFunc('totalProposalRaters', [proposalID, version])
-      allFeedbackers = allFeedbackers.concat(feedbackers);
-      version--;
+      const feedbackers = await feedbackContract.callSmartContractGetFunc('totalProposalRaters', [proposalID, version])
+      allFeedbackers = allFeedbackers.concat(feedbackers)
+      version--
     }
 
-    let ratingPromises = allFeedbackers.map(async (feedbacker) => {
+    const ratingPromises = allFeedbackers.map(async feedbacker => {
       const feedback = await feedbackContract.callSmartContractGetFunc('getProposalRating', [proposalID, feedbacker])
       return parseInt(feedback.rating)
     })
@@ -294,22 +299,36 @@ const proposalRating = async (feedbackContract, proposalID) => {
  */
 const proposalComplaints = async (feedbackContract, proposalID) => {
   try {
-    let complaints = {}
+    const complaints = {}
     let allComplainers = []
-    const verRes = await getFeedbackContractVersion(feedbackContract);
-    let version = verRes.number;
+    const verRes = await getFeedbackContractVersion(feedbackContract)
+    let version = verRes.number
     while (version > 0) {
-      let complainers = await feedbackContract.callSmartContractGetFunc('totalProposalCommentors', [proposalID, version])
-      allComplainers = allComplainers.concat(complainers);
-      version--;
+      const complainers = await feedbackContract.callSmartContractGetFunc('totalProposalCommentors', [
+        proposalID,
+        version,
+      ])
+      allComplainers = allComplainers.concat(complainers)
+      version--
     }
-    let complaintPromises = allComplainers.map(async (complainer) => {
-      const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [proposalID, complainer]);
-      const cres = await getCitizenIdByAddress(complainer);
-      const citizenInfo = await getCitizen(cres.citizenID);
+    const complaintPromises = allComplainers.map(async complainer => {
+      const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [
+        proposalID,
+        complainer,
+      ])
+      const cres = await getCitizenIdByAddress(complainer)
+      const citizenInfo = await getCitizen(cres.citizenID)
       for (let i = 1; i <= parseInt(countRes); i++) {
-        let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [proposalID, complainer, i]);
-        complaints[complaintInfo.createdAt] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.createdAt }
+        const complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [
+          proposalID,
+          complainer,
+          i,
+        ])
+        complaints[complaintInfo.createdAt] = {
+          complainer: citizenInfo.name,
+          description: complaintInfo.description,
+          date: complaintInfo.createdAt,
+        }
       }
     })
     await Promise.all(complaintPromises)
@@ -330,12 +349,12 @@ const proposalFeedback = async (proposalID, feedbackContract = null) => {
     feedbackContract = getFeedbackContract()
     feedbackContract.init()
   }
-  const ratingData = await proposalRating(feedbackContract, proposalID);
-  const commentData = await proposalComplaints(feedbackContract, proposalID);
+  const ratingData = await proposalRating(feedbackContract, proposalID)
+  const commentData = await proposalComplaints(feedbackContract, proposalID)
   if (!ratingData.success || !commentData.success) {
-    return { success: false, error: ratingData.error || commentData.error };
+    return { success: false, error: ratingData.error || commentData.error }
   }
-  return { success: true, ratingData, commentData };
+  return { success: true, ratingData, commentData }
 }
 /**
  * Get individual citizen's feedback on a specific Proposal
@@ -352,15 +371,30 @@ const citizenFeedback = async (proposalID, citizenAddress, feedbackContract = nu
     }
     const complaints = {}
     const feedback = await feedbackContract.callSmartContractGetFunc('getProposalRating', [proposalID, citizenAddress])
-    const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [proposalID, citizenAddress]);
+    const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [
+      proposalID,
+      citizenAddress,
+    ])
 
-    const cres = await getCitizenIdByAddress(citizenAddress);
-    const citizenInfo = await getCitizen(cres.citizenID);
+    const cres = await getCitizenIdByAddress(citizenAddress)
+    const citizenInfo = await getCitizen(cres.citizenID)
     for (let i = 1; i <= parseInt(countRes); i++) {
-      let complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [proposalID, citizenAddress, i]);
-      complaints[complaintInfo.createdAt] = { complainer: citizenInfo.name, description: complaintInfo.description, date: complaintInfo.createdAt }
+      const complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [
+        proposalID,
+        citizenAddress,
+        i,
+      ])
+      complaints[complaintInfo.createdAt] = {
+        complainer: citizenInfo.name,
+        description: complaintInfo.description,
+        date: complaintInfo.createdAt,
+      }
     }
-    return { success: true, ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, version: feedback.version }, complaintData: complaints };
+    return {
+      success: true,
+      ratingData: { rating: parseInt(feedback.rating), createdAt: feedback.createdAt, version: feedback.version },
+      complaintData: complaints,
+    }
   } catch (e) {
     return { success: false, error: e.message }
   }
@@ -368,9 +402,9 @@ const citizenFeedback = async (proposalID, citizenAddress, feedbackContract = nu
 
 /**
  * Returns proposal details by path. Eventhough this method tries to fetch the proposals based on path
- * @param {string} path 
- * @param {Object} contract 
- * @param {Object} voterContract 
+ * @param {string} path
+ * @param {Object} contract
+ * @param {Object} voterContract
  * @returns proposal JSONs
  */
 const getPathProposalsByPath = async (path, contract, voterContract) => {
@@ -379,26 +413,26 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
   // const voterC = voterContract || getVoteContract()
 
   const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
-  //get cachedproposal
-  let cachedFiles = [], newProposals = {}
+  // get cachedproposal
+  let cachedFiles = []
+  const newProposals = {}
   const cachedProposalDir = `${exportsDirNation}/${path}/proposals`
   if (fs.existsSync(cachedProposalDir)) {
-    cachedFiles = fs.readdirSync(cachedProposalDir);
+    cachedFiles = fs.readdirSync(cachedProposalDir)
   }
   let allPropsData = []
   const verRes = await getProposalContractVersion(contract)
   while (verRes.number > 0) {
-    let { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash, verRes.number])
-    let { results, errors } = await PromisePool
-      .withConcurrency(1)
+    const { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash, verRes.number])
+    const { results, errors } = await PromisePool.withConcurrency(1)
       .for(propIds)
       .process(async pid => {
         try {
           pid = `${contractIdentifier}:v${verRes.number}:${pid}`
 
-          let pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path)
+          const pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path)
 
-          let { proposalVotes } = await voteDataRollupsFile()
+          const { proposalVotes } = await voteDataRollupsFile()
           //   const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
           const feedbacks = await proposalFeedback(pid, proposalC)
 
@@ -411,48 +445,55 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
             ...pData.proposal,
             votes: !isEmpty(proposalVotes) ? get(proposalVotes, pid, []).length : 0,
             ratings,
-            complaints
+            complaints,
           }
         } catch (e) {
           console.log('getPathProposalsByPath', pid, e)
-          return null;
+          return null
         }
       })
     allPropsData = allPropsData.concat(results)
-    verRes.number--;
+    verRes.number--
   }
   // append new proposals in cache file
-  if (!isEmpty(newProposals))
+  if (!isEmpty(newProposals)) {
     fs.writeFileSync(file, JSON.stringify({ ...cachedProposalsByPaths, ...newProposals }))
+  }
   return allPropsData
 }
 
 /**
  * Returns proposal data either from cache or from blockchain
- * @param {integer} proposalId 
- * @param {Object} cachedProposalsByPaths 
- * @param {Object} proposalC 
- * @param {String} cacheFile 
+ * @param {integer} proposalId
+ * @param {Object} cachedProposalsByPaths
+ * @param {Object} proposalC
+ * @param {String} cacheFile
  * @returns Proposal's object
  */
 const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, cachedYamls, path) => {
   let filePath
-  let theftYears = {}
+  const theftYears = {}
   let theftAmt = 0
 
   let proposal = cachedProposalsByPaths[proposalId]
   // if (proposal) return { proposal, fromCache: true }
 
-  const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(proposalId, path, proposalC, cachedYamls)
+  const { proposal: tmpProposal, yamlJSON: file } = await getYamlFromCacheOrSmartContract(
+    proposalId,
+    path,
+    proposalC,
+    cachedYamls
+  )
   proposal = tmpProposal
-  yamlStolenYears(file).forEach((y) => {
+  yamlStolenYears(file).forEach(y => {
     if (`stolen_${y}` in file) {
       theftYears[y] = convertStringDollarToNumeric(file[`stolen_${y}`])
       theftAmt += theftYears[y]
     }
   })
-  if (fs.existsSync(filePath))
+  if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath)
+  }
   return {
     proposal: {
       id: proposalId,
@@ -463,16 +504,17 @@ const getProposalData = async (proposalId, cachedProposalsByPaths, proposalC, ca
       title: file && (file.title || file.Title) ? file.title || file.Title : 'No Title available',
       description: file && file.describe_problem_area ? file.describe_problem_area : 'No Description available',
       theftAmt,
-      theftYears
-    }, fromCache: false
+      theftYears,
+    },
+    fromCache: false,
   }
 }
 
 /**
  * Returns proposal yaml either from cache or from blockchain
- * @param {integer} proposalId 
- * @param {String} path 
- * @param {Object} contract 
+ * @param {integer} proposalId
+ * @param {String} path
+ * @param {Object} contract
  * @returns Proposal's YAML object
  */
 const getProposalYaml = async (proposalId, path, contract) => {
@@ -483,47 +525,50 @@ const getProposalYaml = async (proposalId, path, contract) => {
 
 /**
  * Returns proposal yaml either from cache or from blockchain
- * @param {integer} proposalId 
- * @param {String} path 
- * @param {Object} contract 
- * @param {Object} cachedYamls 
+ * @param {integer} proposalId
+ * @param {String} path
+ * @param {Object} contract
+ * @param {Object} cachedYamls
  * @returns Proposal's YAML object
  */
 const getYamlFromCacheOrSmartContract = async (proposalId, path, contract, cachedYamls) => {
-  let yamlJSON, filePath
+  let yamlJSON
+  let filePath
   const proposalC = contract || getProposalContract()
   const proposal = await proposalC.callSmartContractGetFunc('getProposal', [proposalId])
-  //check if proposal Yaml is in cache
+  // check if proposal Yaml is in cache
   const cachedProposalDir = `${exportsDirNation}/${path}/proposals`
 
   if (!cachedYamls && path) {
     cachedYamls = []
     if (fs.existsSync(cachedProposalDir)) {
-      cachedYamls = fs.readdirSync(cachedProposalDir);
+      cachedYamls = fs.readdirSync(cachedProposalDir)
     }
   }
 
   if (cachedYamls && cachedYamls.length > 0) {
-    let regex = new RegExp("^" + proposalId + "_proposal");
-    let cacheYaml = cachedYamls.filter(value => regex.test(value))
+    const regex = new RegExp(`^${proposalId}_proposal`)
+    const cacheYaml = cachedYamls.filter(value => regex.test(value))
     if (cacheYaml.length > 0) {
       filePath = `${cachedProposalDir}/${cacheYaml[0]}`
     }
   }
-  if (!filePath) { // if not found in cache then search blockchain
+  if (!filePath) {
+    // if not found in cache then search blockchain
     filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
 
     if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
       const proposalYaml = await proposalC.callSmartContractGetFunc('getProposalYaml', [proposal.yamlBlock])
-      let outputFiles = await fetchProposalYaml(proposalC, proposalYaml.firstBlock, 1)
+      const outputFiles = await fetchProposalYaml(proposalC, proposalYaml.firstBlock, 1)
       await splitFile.mergeFiles(outputFiles, filePath)
       // outputFiles.map(f => fs.existsSync(f) && fs.unlinkSync(f))
     }
   }
 
   yamlJSON = yaml.load(fs.readFileSync(filePath, 'utf-8'))
-  if (fs.existsSync(filePath))
+  if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath)
+  }
   return { proposal, yamlJSON }
 }
 
@@ -537,16 +582,15 @@ const getCachedProposalsByPathsDir = path => {
   const cachedProposalsByPaths = dir.join(cachedProposalsByPathsDir, path)
   try {
     if (!fs.existsSync(cachedProposalsByPathsDir)) {
-      fs.mkdirSync(cachedProposalsByPathsDir, { recursive: true });
+      fs.mkdirSync(cachedProposalsByPathsDir, { recursive: true })
     }
 
-    let rawdata = fs.readFileSync(cachedProposalsByPaths)
+    const rawdata = fs.readFileSync(cachedProposalsByPaths)
     return { data: JSON.parse(rawdata), file: cachedProposalsByPaths }
   } catch (e) {
     return { data: {}, file: cachedProposalsByPaths }
   }
 }
-
 
 module.exports = {
   contractIdentifier,
@@ -566,5 +610,5 @@ module.exports = {
   citizenFeedback,
   getProposalDetails,
   getPathProposalsByPath,
-  getProposalYaml
+  getProposalYaml,
 }

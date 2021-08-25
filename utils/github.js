@@ -1,7 +1,7 @@
-const axios = require('axios');
+const axios = require('axios')
 const { last, template } = require('lodash')
 
-const getGithubTemplate = async (path) => {
+const getGithubTemplate = async path => {
   // const { data, status } = await callGithub(`https://api.github.com/repos/zerotheft/template_problem_hierarchy/contents/${path}`)
 
   // if (status === 200 && data.length > 0) {
@@ -14,7 +14,6 @@ const getGithubTemplate = async (path) => {
   if (proposalStatus === 200) {
     return proposalData
   }
-  return
 }
 
 // const getUmbrellas = async () => {
@@ -32,7 +31,6 @@ const getGithubTemplate = async (path) => {
 //     const traverse = async (item, path = '') => {
 //       const { data: { tree } } = await callGithub(item.url)
 //       await Promise.all(tree.map(async branch => {
-
 
 //         if (branch.path === `${item.path}.yaml`) {
 //           const hasOtherTrees = tree.find(i => i.type === 'tree')
@@ -59,10 +57,7 @@ const getGithubTemplate = async (path) => {
 //   }
 // }
 
-
-
-
-const callGithub = async (api) => {
+const callGithub = async api => {
   const { data, status } = await axios(api, {
     method: 'get',
     // headers: {
@@ -74,5 +69,5 @@ const callGithub = async (api) => {
 }
 
 module.exports = {
-  getGithubTemplate
+  getGithubTemplate,
 }

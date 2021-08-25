@@ -4,8 +4,8 @@ const { ensureAccountLoginAndGetDetails } = require('./storage')
 
 class Web3 {
   constructor(contractName) {
-    this.contractName = contractName;
-    this.web3 = null;
+    this.contractName = contractName
+    this.web3 = null
     this.instance = null
     this.address = null
   }
@@ -24,26 +24,31 @@ class Web3 {
       const storage = await ensureAccountLoginAndGetDetails()
       if (!storage) return
     }
-    return await this.instance.methods[methodName](...args).call();
-
+    return await this.instance.methods[methodName](...args).call()
   }
 
   async watchEvent(eventName, callback, args = {}) {
     if (!this.web3 || !this.instance) await this.init('websocket')
-    this.instance.events[eventName]({ fromBlock: 0, ...args }, function (error, event) {
-
+    this.instance.events[eventName]({ fromBlock: 0, ...args }, (error, event) => {
       if (!error && event) {
-        callback(event.returnValues);
+        callback(event.returnValues)
       } else {
         console.log(error)
       }
     })
   }
 
-  async createTransaction(methodName, args = [], gasLimit = GAS_LIMIT, gasPrice = GAS_PRICE, accType = 'regular', account) {
+  async createTransaction(
+    methodName,
+    args = [],
+    gasLimit = GAS_LIMIT,
+    gasPrice = GAS_PRICE,
+    accType = 'regular',
+    account
+  ) {
     if (!this.web3 || !this.instance) await this.init()
 
-    const storage = account || await ensureAccountLoginAndGetDetails(accType)
+    const storage = account || (await ensureAccountLoginAndGetDetails(accType))
     if (!storage) return
 
     const functionAbi = this.instance.methods[methodName](...args).encodeABI()
@@ -53,10 +58,9 @@ class Web3 {
       to: this.address,
       data: functionAbi,
       gasLimit: this.web3.utils.toHex(gasLimit),
-      gasPrice: this.web3.utils.toHex(this.web3.utils.toWei((gasPrice).toString(), 'gwei'))
+      gasPrice: this.web3.utils.toHex(this.web3.utils.toWei(gasPrice.toString(), 'gwei')),
     })
   }
 }
-
 
 module.exports = Web3
