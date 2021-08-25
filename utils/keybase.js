@@ -1,22 +1,23 @@
-const exec = require('child_process').exec
+const { exec } = require('child_process')
 const { fetch } = require('./api')
 
-const getCurrentCitizen = async (cb) => {
-  return new Promise((resolve, reject) => {
+const getCurrentCitizen = async cb =>
+  new Promise((resolve, reject) => {
     let citizen
     exec('keybase whoami', (err, stdout, stderr) => {
       if (err || stderr || !stdout) {
         reject()
         return
       }
-      citizen = Buffer.from(stdout).toString('utf8').replace(/(\r\n|\n|\r)/gm, '')
+      citizen = Buffer.from(stdout)
+        .toString('utf8')
+        .replace(/(\r\n|\n|\r)/gm, '')
       resolve(citizen)
     })
   })
-}
 
-const areKeysSet = () => {
-  return new Promise((resolve, reject) => {
+const areKeysSet = () =>
+  new Promise((resolve, reject) => {
     exec('keybase pgp list', (err, stdout, stderr) => {
       if (err || stderr || !stdout) {
         reject()
@@ -24,7 +25,6 @@ const areKeysSet = () => {
       resolve()
     })
   })
-}
 
 const isLoggedIntoKeybase = async citizen => {
   const currentCitizen = await getCurrentCitizen()
@@ -33,7 +33,7 @@ const isLoggedIntoKeybase = async citizen => {
 
 const hasProofInGithub = async keybaseCitizen => {
   try {
-    const citizenName = keybaseCitizen || await getCurrentCitizen()
+    const citizenName = keybaseCitizen || (await getCurrentCitizen())
 
     const citizen = await fetchCitizenFromKeybase(citizenName)
     const proofs = citizen.proofs_summary.all
@@ -62,5 +62,5 @@ module.exports = {
   getCurrentCitizen,
   areKeysSet,
   isLoggedIntoKeybase,
-  hasProofInGithub
+  hasProofInGithub,
 }

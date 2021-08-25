@@ -1,6 +1,5 @@
 const { getFeedbackContract } = require('../utils/contract')
 
-
 /**
  * Get the version of feedback contract version
  * @param {object} getFeedbackContract Instance of feedback contract
@@ -15,7 +14,7 @@ const getFeedbackContractVersion = async (feedbackContract = null) => {
     return {
       success: true,
       version,
-      number: version.split('v')[1]
+      number: version.split('v')[1],
     }
   } catch (e) {
     return { success: false, error: e.message }
@@ -23,5 +22,5 @@ const getFeedbackContractVersion = async (feedbackContract = null) => {
 }
 
 module.exports = {
-  getFeedbackContractVersion
+  getFeedbackContractVersion,
 }
