@@ -1,0 +1,7 @@
+.idea
+node_modules
+config.staging.json
+config.private.json
+config.private2.json
+config.production.json
+contracts.*
