@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const homedir = require('os').homedir()
 const path = require('path')
 const fs = require('fs')
@@ -26,31 +27,36 @@ const desktopEnvPath = path.join(maindir, '.zt', 'env.json')
 
 const getEnvValue = () => {
   try {
-    let rawdata = fs.readFileSync(desktopEnvPath)
+    const rawdata = fs.readFileSync(desktopEnvPath)
     return JSON.parse(rawdata)
   } catch (e) {
     return {}
   }
 }
 
-let currentEnv = getEnvValue().MODE
+const currentEnv = getEnvValue().MODE
 
-let MODE = currentEnv || process.env.REACT_APP_MODE || process.env.NODE_ENV;
+let MODE = currentEnv || process.env.REACT_APP_MODE || process.env.NODE_ENV
+// eslint-disable-next-line no-nested-ternary
 const envConfig = !MODE || MODE === "development" ? localConfig : MODE === "staging" ? stagingConfig : MODE === "production" ? prodConfig : privateConfig
 if (!MODE) {
   MODE = envConfig.MODE || 'development'
 }
 
-const contracts = MODE === "development" ? {} : MODE === "staging" ? stagingContracts : MODE === "production" ? prodContracts : {}
+const contracts =
+  // eslint-disable-next-line no-nested-ternary
+  MODE === 'development' ? {} : MODE === 'staging' ? stagingContracts : MODE === 'production' ? prodContracts : {}
+
+
 module.exports = {
   SHOULD_VALIDATE: envConfig.SHOULD_VALIDATE !== false,
   HTTP_PROVIDER: envConfig.HTTP_PROVIDER || 'http://localhost:8545',
   WEB_PROVIDER: envConfig.WEB_PROVIDER || 'ws://localhost:8545',
   ADDRESS_ENCRYPT_KEY: envConfig.ADDRESS_ENCRYPT_KEY || 'zerotheft123',
-  MODE: MODE,
+  MODE,
   ...contracts,
   ...envConfig,
   ...commonConfig,
   APP_PATH: maindir,
-  GAS_LIMIT: envConfig.GAS_LIMIT || 300000
+  GAS_LIMIT: envConfig.GAS_LIMIT || 300000,
 }

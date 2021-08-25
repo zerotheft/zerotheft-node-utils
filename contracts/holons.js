@@ -14,7 +14,7 @@ const contractIdentifier = "ZTMHolon"
  */
 const getHolonContractVersion = async (holonContract = null) => {
   if (!holonContract) {
-    holonContract = await getProposalContract()
+    holonContract = await getHolonContract()
   }
   try {
     const versionNumber = await holonContract.callSmartContractGetFunc('getContractVersion')
@@ -66,13 +66,13 @@ const listHolonIds = async (contract = null) => {
  */
 const listHolonCitizens = async (contract = null, holonID) => {
   if (contract === null) {
+    // eslint-disable-next-line no-param-reassign
     contract = getHolonContract()
   }
   const verRes = await getHolonContractVersion(contract);
   let version = verRes.number;
   let allCitizens = [];
   while (version > 0) {
-
     try {
       const citizens = await contract.callSmartContractGetFunc('getHolonCitizens', [holonID, version])
       allCitizens = allCitizens.concat(citizens)
@@ -92,6 +92,7 @@ const getHolonIds = async (contract = null) => {
   if (contract === null) {
     contract = getHolonContract()
   }
+
   let allHolonIDs = [];
   const { allHolons, allHolonsCount } = await listHolonIds(contract);
   Object.keys(allHolons).forEach(version => {

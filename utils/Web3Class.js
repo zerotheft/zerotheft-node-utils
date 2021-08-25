@@ -6,7 +6,7 @@ class Web3 {
   constructor(contractName) {
     this.contractName = contractName;
     this.web3 = null;
-    this.instance = null;
+    this.instance = null
     this.address = null
   }
 
