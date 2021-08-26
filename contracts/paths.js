@@ -31,39 +31,15 @@ const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) =>
   }
   return allOutputs
 }
-
-const allNations = async () => {
-  const contract = getPathContract()
-  const nations = ['USA']
-  return Promise.all(
-    nations.map(async nation => {
-      // fetch path yaml chunks based on nation hash
-      const hierarchyAreaBytes = convertStringToHash('RiggedEconomy')
-      const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [hierarchyAreaBytes])
-      const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`
-      if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
-        const hierarchyYaml = await contract.callSmartContractGetFunc(
-          'getEconomicHierarchyYaml',
-          [path.yamlOfEconomicHierarchy],
-          900000
-        )
-        outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
-        await splitFile.mergeFiles(outputFiles, pathDir)
-      }
-      pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
-
-      return {
-        pathRoot: path.pathRoot,
-        nation,
-        hierarchy: pathYamlContent,
-        version: path.version,
-        pathCrumbs: makePathCrumbs(pathYamlContent),
-      }
-    })
-  )
-}
-
+/**
+ * Prepare a path crumbs based on the path yaml content.
+ * @param {Object} path - Content of a path yaml file.
+ * @param {array} allPaths - Array containing the url of path from economic hierarchy file.
+ * @param {array} paths - Array containing the items of a economic hierarchy file.
+ * @return {array} Returning the full url of all paths from economic hierarchy file.
+ */
 const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
+  // eslint-disable-next-line array-callback-return
   Object.keys(path).map(key => {
     if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version'].includes(key)) return
     Object.keys(path).forEach(item => {
@@ -84,8 +60,46 @@ const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
   return allPaths
 }
 
-/*
- * Return paths based on nation
+/**
+ * Get the economic hierarchy data from all nations.
+ * @return {array} Array of json objects that holds the economic hierarchy data from all nations.
+ */
+const allNations = async () => {
+  const contract = getPathContract()
+  const nations = ['USA']
+  return Promise.all(
+    nations.map(async nation => {
+      // fetch path yaml chunks based on nation hash
+      const hierarchyAreaBytes = convertStringToHash('RiggedEconomy')
+      const path = await contract.callSmartContractGetFunc('getLatestEconomicHierarchy', [hierarchyAreaBytes])
+      const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${path.version}.yaml`
+      if (!fs.existsSync(pathDir) && Object.keys(path).length > 0) {
+        const hierarchyYaml = await contract.callSmartContractGetFunc(
+          'getEconomicHierarchyYaml',
+          [path.yamlOfEconomicHierarchy],
+          900000
+        )
+        const outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
+        await splitFile.mergeFiles(outputFiles, pathDir)
+      }
+      const pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
+
+      return {
+        pathRoot: path.pathRoot,
+        nation,
+        hierarchy: pathYamlContent,
+        version: path.version,
+        pathCrumbs: makePathCrumbs(pathYamlContent),
+      }
+    })
+  )
+}
+
+/**
+ * Return paths based on nation.
+ * @param {string} nation - Name of the nation whose path is required.
+ * @param {string} area - Search for the path based on area.
+ * @return {Object} JSON object of the path.
  */
 const pathsByNation = async (nation = 'USA', area = 'RiggedEconomy') => {
   const contract = getPathContract()
@@ -98,14 +112,15 @@ const pathsByNation = async (nation = 'USA', area = 'RiggedEconomy') => {
       [path.yamlOfEconomicHierarchy],
       900000
     )
-    outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
+    const outputFiles = await fetchPathYaml(contract, hierarchyYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, pathDir)
   }
-  pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
+  const pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
   return pathYamlContent
 }
 /**
- * Get Umbrella nodes from cache or from blockchain
+ * Get Umbrella nodes from cache or from blockchain.
+ * @param {string} nation - Name of the nation which umbrella path is needed.
  */
 const getUmbrellaPaths = async (nation = 'USA') => {
   try {
@@ -157,7 +172,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
         verRes.number,
       ])
       if (propIds.length === 0) throw new Error(`no proposals found for ${path}`)
-      const { results: pathDetails, errors } = await PromisePool.withConcurrency(10)
+      const { results: pathDetails } = await PromisePool.withConcurrency(10)
         .for(propIds)
         .process(async id => {
           id = `${proposalIdentifier}:v${verRes.number}:${id}`
@@ -176,7 +191,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
             return proposal
           }
 
-          const { results: voteInfo, errors } = await PromisePool.withConcurrency(10)
+          const { results: voteInfo } = await PromisePool.withConcurrency(10)
             .for(proposal.votes)
             .process(async vid => {
               try {
