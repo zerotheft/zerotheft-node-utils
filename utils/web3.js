@@ -21,7 +21,7 @@ const initiateWeb3 = (provider, accType = 'regular') =>
 
 const createMockAccount = () => {
   const web3 = initiateWeb3()
-  return web3.eth.accounts.create();
+  return web3.eth.accounts.create()
 }
 
 const createAccount = async (accType = 'regular', importedMnemonic) => {
@@ -31,7 +31,7 @@ const createAccount = async (accType = 'regular', importedMnemonic) => {
   const wallet = EthHdWallet.fromMnemonic(mnemonic)
   const [address] = wallet.generateAddresses(1)
   const privateKey = wallet.getPrivateKey(address).toString('hex')
-  const encryptedKey = web3.eth.accounts.encrypt(privateKey, ADDRESS_ENCRYPT_KEY);
+  const encryptedKey = web3.eth.accounts.encrypt(privateKey, ADDRESS_ENCRYPT_KEY)
 
   await updateStorageValues(address, privateKey, null, { mnemonic: encrypt(mnemonic, ADDRESS_ENCRYPT_KEY) }, accType)
 
@@ -47,13 +47,18 @@ const importByPrivateKey = async privateKey => {
   const web3 = initiateWeb3()
 
   const account = web3.eth.accounts.privateKeyToAccount(privateKey)
-  const encryptedKey = web3.eth.accounts.encrypt(account.privateKey, ADDRESS_ENCRYPT_KEY);
+  const encryptedKey = web3.eth.accounts.encrypt(account.privateKey, ADDRESS_ENCRYPT_KEY)
   return {
     address: account.address,
     encryptedKey,
   }
 }
 
+/**
+ * Decrypt the ethere address
+ * @param {Object} obj - ethereum address detail that needs to be decrypted
+ * @return {Object} decrypted information as a JSON object
+ */
 const decryptEthAddress = obj => {
   const web3 = initiateWeb3()
   return web3.eth.accounts.decrypt(obj, ADDRESS_ENCRYPT_KEY)
@@ -92,8 +97,6 @@ const getBalance = async (accType = 'regular') => {
   return bal ? web3.utils.fromWei(bal, 'ether') : 0
 }
 
-
-
 const instantiateContract = async (web3, contractName) => {
   let contract = {}
   if (MODE === 'development') {
@@ -105,7 +108,6 @@ const instantiateContract = async (web3, contractName) => {
   const networkId = await web3.eth.net.getId()
   const deployedNetwork = contract.networks[networkId]
   return [new web3.eth.Contract(contract.abi, deployedNetwork && deployedNetwork.address), deployedNetwork.address]
-
 }
 
 const carryTransaction = async (web3, address, privateKey, obj, networkType = 'regular') => {
@@ -114,36 +116,42 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     let customCommon = {}
     const txCount = await web3.eth.getTransactionCount(address)
     let txArgs = {
-      "chain": config.NETWORK_NAME
+      chain: config.NETWORK_NAME,
     }
     if (MODE === 'production' && networkType === 'eth') {
-      txArgs = { "chain": "mainnet" }
-    }
-    else if ((MODE === 'staging' || MODE === 'private') && networkType === 'eth') {
-      txArgs = { "chain": "ropsten" }
+      txArgs = { chain: 'mainnet' }
+    } else if ((MODE === 'staging' || MODE === 'private') && networkType === 'eth') {
+      txArgs = { chain: 'ropsten' }
     }
     const txObject = {
       ...{
         nonce: web3.utils.toHex(txCount),
         gasLimit: web3.utils.toHex(config.GAS_LIMIT || 300000),
-        gasPrice: web3.utils.toHex(web3.utils.toWei((GAS_PRICE || "1").toString(), 'gwei'))
-      }, ...obj
+        gasPrice: web3.utils.toHex(web3.utils.toWei((GAS_PRICE || '1').toString(), 'gwei')),
+      },
+      ...obj,
     }
-    let networkId, chainId;
+    let networkId
+    let chainId
 
-    if (networkType !== 'eth' && (config.NETWORK_NAME === "kotti" || config.NETWORK_NAME === "mainnet")) {
-      networkId = (config.NETWORK_NAME === "kotti") ? 6 : 1;
-      chainId = (config.NETWORK_NAME === "kotti") ? 6 : 61;
-    } else if (["privatenet", "devprivatenet"].includes(config.NETWORK_NAME)) {
-      networkId = chainId = config.NETWORK_ID;
+    if (networkType !== 'eth' && (config.NETWORK_NAME === 'kotti' || config.NETWORK_NAME === 'mainnet')) {
+      networkId = config.NETWORK_NAME === 'kotti' ? 6 : 1
+      chainId = config.NETWORK_NAME === 'kotti' ? 6 : 61
+    } else if (['privatenet', 'devprivatenet'].includes(config.NETWORK_NAME)) {
+      networkId = chainId = config.NETWORK_ID
     }
 
-    let tx;
-    if ((MODE === 'development' || MODE === 'private') && networkType !== 'eth' && config.NETWORK_NAME !== "privatenet" && config.NETWORK_NAME !== "devprivatenet") {
+    let tx
+    if (
+      (MODE === 'development' || MODE === 'private') &&
+      networkType !== 'eth' &&
+      config.NETWORK_NAME !== 'privatenet' &&
+      config.NETWORK_NAME !== 'devprivatenet'
+    ) {
       tx = new EthereumTx(txObject)
     } else {
       customCommon = Common.default.forCustomChain(
-        "mainnet",
+        'mainnet',
         {
           name: config.NETWORK_NAME,
           networkId,
@@ -157,7 +165,7 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
 
     tx.sign(Buffer.from(privateKey, 'hex'))
     const serializedTransaction = tx.serialize()
-    const raw = '0x' + serializedTransaction.toString('hex')
+    const raw = `0x${serializedTransaction.toString('hex')}`
 
     return web3.eth.sendSignedTransaction(raw)
   } catch (e) {
@@ -177,7 +185,7 @@ const convertBytesToString = (item, trim = false) => {
   return val
 }
 
-const convertStringToHash = (item) => {
+const convertStringToHash = item => {
   const web3 = initiateWeb3()
   const val = web3.utils.keccak256(item)
   return val
@@ -185,8 +193,8 @@ const convertStringToHash = (item) => {
 
 /**
  * Conversts string to correct bytes32
- **/
-const convertToAscii = (item) => {
+ * */
+const convertToAscii = item => {
   const web3 = initiateWeb3()
   const val = web3.utils.asciiToHex(item)
   return val
@@ -196,25 +204,24 @@ const convertToAscii = (item) => {
  * This method converts the hex value to respective Ascii
  * @params hexValue - value that is ready or conversion
  * @returns ascii value of respective hex value
- **/
-const convertHexToAscii = (hexValue) => {
+ * */
+const convertHexToAscii = hexValue => {
   const web3 = initiateWeb3()
   const val = web3.utils.hexToAscii(hexValue)
   return val
 }
-
 
 /**
  * Sign a params and returns a signed message
  * @params params parameters to generate a sha3 hash value
  * @params signer account details of a signer
  * @returns signedMessage The signature
- **/
+ * */
 const signMessage = async (params, signer = null) => {
   if (!signer) signer = getStorageValues()
 
   const web3 = initiateWeb3()
-  let sha3 = web3.utils.soliditySha3(...params)
+  const sha3 = web3.utils.soliditySha3(...params)
   const signedMessage = await web3.eth.accounts.sign(sha3, signer.key)
   // const signedMessage = await web3.eth.sign(sha3, signer.address)
   // let signedMessage = await web3.eth.sign("0x5fe7f977e71dba2ea1a68e21057beebb9be2ac30c6410aa38d4f3fbe41dcffd2", "0xCD4f2b154dd0553bfC51cCE4356a23956d97490d")
@@ -241,5 +248,5 @@ module.exports = {
   createMockAccount,
   convertToAscii,
   convertHexToAscii,
-  signMessage
+  signMessage,
 }

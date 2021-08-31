@@ -1,23 +1,27 @@
 const { getCitizenContract } = require('../utils/contract')
-const contractIdentifier = "ZTMCitizen"
+
+const contractIdentifier = 'ZTMCitizen'
 
 /**
  * Fetch the respective index of citizen address
  * @param {string} citizenAddress address of a citizen
  * @param {Object} citizenContract object of a citizen contract
- * @returns 
+ * @returns
  */
 const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => {
   if (!citizenContract) {
     citizenContract = await getCitizenContract()
   }
   try {
-    const { citizenID, citizenIndex, contractVersion } = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
-    if (parseInt(citizenIndex) === 0) throw new Error("citizen not found")
+    const { citizenID, citizenIndex, contractVersion } = await citizenContract.callSmartContractGetFunc(
+      'getUnverifiedCitizenAddressIndex',
+      [citizenAddress]
+    )
+    if (parseInt(citizenIndex) === 0) throw new Error('citizen not found')
     return {
       success: true,
       citizenIndex,
-      citizenID
+      citizenID,
     }
   } catch (e) {
     return { success: false, error: e.message }
@@ -73,32 +77,35 @@ const getCitizen = async (citizenID, citizenContract = null) => {
   }
 }
 
-/* get all citizen ids*/
+/* get all citizen ids */
 const listCitizenIds = async (contract = null) => {
   if (contract === null) {
     contract = getCitizenContract()
   }
-  const verRes = await getCitizenContractVersion(contract);
-  let version = verRes.number;
-  let allVoters = {}
-  let allVotersCount = 0;
+  const verRes = await getCitizenContractVersion(contract)
+  let version = verRes.number
+  const allVoters = {}
+  let allVotersCount = 0
   while (version > 0) {
-    let versionVoters = [];
-    let cursor = 0;
-    let howMany = 1000;
+    let versionVoters = []
+    let cursor = 0
+    const howMany = 1000
     try {
       do {
-        let voters = await contract.callSmartContractGetFunc('getUnverifiedCitizenIndicesByCursor', [cursor, howMany, version])
+        const voters = await contract.callSmartContractGetFunc('getUnverifiedCitizenIndicesByCursor', [
+          cursor,
+          howMany,
+          version,
+        ])
         versionVoters = versionVoters.concat(voters)
-        cursor = cursor + howMany
+        cursor += howMany
       } while (1)
-    }
-    catch (e) {
+    } catch (e) {
       console.log(e.message)
     }
     allVoters[`v${version}`] = versionVoters
     allVotersCount += versionVoters.length
-    version--;
+    version--
   }
   return { allVoters, allVotersCount }
 }
@@ -108,5 +115,5 @@ module.exports = {
   getCitizenContractVersion,
   getCitizenIdByAddress,
   getCitizen,
-  listCitizenIds
+  listCitizenIds,
 }

@@ -15,18 +15,18 @@ const holons = require('./contracts/holons')
 const wallets = require('./contracts/wallets')
 
 module.exports = {
-    api,
-    csv,
-    contracts,
-    keybase,
-    web3,
-    storage,
-    access,
-    paths,
-    proposals,
-    citizens,
-    encryptor,
-    helpers,
-    holons,
-    wallets
+  api,
+  csv,
+  contracts,
+  keybase,
+  web3,
+  storage,
+  access,
+  paths,
+  proposals,
+  citizens,
+  encryptor,
+  helpers,
+  holons,
+  wallets,
 }
