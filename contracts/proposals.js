@@ -6,13 +6,14 @@ const yaml = require('js-yaml')
 const { mean, get, isEmpty } = require('lodash')
 const { getCitizen, getCitizenIdByAddress } = require('./citizens')
 const { APP_PATH } = require('../config')
+// eslint-disable-next-line import/order
+const homedir = APP_PATH || require('os').homedir()
 const { convertStringToHash } = require('../utils/web3')
 const { convertStringDollarToNumeric, abbreviateNumber } = require('../utils/helpers')
 const { getProposalContract, getFeedbackContract, getVoteContract } = require('../utils/contract')
 const { getFeedbackContractVersion } = require('./feedbacks')
 const { getGithubTemplate } = require('../utils/github')
 const { exportsDirNation, voteDataRollupsFile } = require('../utils/common')
-const homedir = APP_PATH || require('os').homedir()
 
 const tmpPropDir = dir.join(homedir, '/tmp')
 const contractIdentifier = 'ZTMProposal'
