@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+/* eslint-disable no-empty */
 const homedir = require('os').homedir()
 const path = require('path')
 const fs = require('fs')
@@ -10,13 +10,27 @@ let privateConfig = {}
 let stagingContracts = {}
 let prodContracts = {}
 let commonConfig = {}
-try { localConfig = require('../../config.json') } catch (e) { }
-try { privateConfig = require('../../config.private.json') } catch (e) { }
-try { stagingConfig = require('../../config.staging.json') } catch (e) { }
-try { prodConfig = require('../../config.production.json') } catch (e) { }
-try { stagingContracts = require('../../contracts.staging.json') } catch (e) { }
-try { prodContracts = require('../../contracts.production.json') } catch (e) { }
-try { commonConfig = require('../../config.common.json') } catch (e) { }
+try {
+  localConfig = require('../../config.json')
+} catch (e) {}
+try {
+  privateConfig = require('../../config.private.json')
+} catch (e) {}
+try {
+  stagingConfig = require('../../config.staging.json')
+} catch (e) {}
+try {
+  prodConfig = require('../../config.production.json')
+} catch (e) {}
+try {
+  stagingContracts = require('../../contracts.staging.json')
+} catch (e) {}
+try {
+  prodContracts = require('../../contracts.production.json')
+} catch (e) {}
+try {
+  commonConfig = require('../../config.common.json')
+} catch (e) {}
 
 // const isPkg = typeof process.pkg !== 'undefined'
 // const mainPath = commonConfig.IS_INSTALLER ? commonConfig.MAIN_PATH : null
@@ -38,7 +52,14 @@ const currentEnv = getEnvValue().MODE
 
 let MODE = currentEnv || process.env.REACT_APP_MODE || process.env.NODE_ENV
 // eslint-disable-next-line no-nested-ternary
-const envConfig = !MODE || MODE === "development" ? localConfig : MODE === "staging" ? stagingConfig : MODE === "production" ? prodConfig : privateConfig
+const envConfig =
+  !MODE || MODE === 'development'
+    ? localConfig
+    : MODE === 'staging'
+    ? stagingConfig
+    : MODE === 'production'
+    ? prodConfig
+    : privateConfig
 if (!MODE) {
   MODE = envConfig.MODE || 'development'
 }
@@ -46,7 +67,6 @@ if (!MODE) {
 const contracts =
   // eslint-disable-next-line no-nested-ternary
   MODE === 'development' ? {} : MODE === 'staging' ? stagingContracts : MODE === 'production' ? prodContracts : {}
-
 
 module.exports = {
   SHOULD_VALIDATE: envConfig.SHOULD_VALIDATE !== false,

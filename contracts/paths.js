@@ -7,12 +7,13 @@ const { getPathContract, getProposalContract, getVoteContract } = require('../ut
 const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage')
 const { APP_PATH } = require('../config')
+// eslint-disable-next-line import/order
+const homedir = APP_PATH || require('os').homedir()
 const {
   contractIdentifier: proposalIdentifier,
   getProposalContractVersion,
   getProposalDetails,
 } = require('./proposals')
-const homedir = APP_PATH || require('os').homedir()
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
 if (!fs.existsSync(pathYamlDir)) {
