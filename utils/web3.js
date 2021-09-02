@@ -107,7 +107,6 @@ const getBalance = async (accType = 'regular') => {
 const instantiateContract = async (web3, contractName) => {
   let contract = {}
   if (MODE === 'development') {
-    console.log('=====Called====')
     contract = JSON.parse(fs.readFileSync(`${config.ZERO_THEFT_CONTRACT}/${contractName}.json`))
   } else {
     // Look s3 bucket for contract's artifacts when MODE is not development
