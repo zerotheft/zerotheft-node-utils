@@ -1,3 +1,4 @@
+const axios = require('axios')
 const { mean, uniq } = require('lodash')
 const { getCitizen, getCitizenIdByAddress } = require('./citizens')
 const { getFeedbackContractVersion } = require('./feedbacks')
@@ -152,6 +153,7 @@ const getHolons = async (type = 'array', holonHandler = null) => {
 
       if (Object.keys(holonInfo).length > 0) {
         const objParms = {
+          id: holonKey,
           name: holonInfo.holonName || '',
           url: holonInfo.holonURL,
           health: holonInfo.status,
@@ -420,6 +422,31 @@ const removeHolonCitizen = async (holonAddress, holonContract = null) => {
     throw e
   }
 }
+/**
+ * Execute Get api call to the holon whose status is needed and give response
+ * @param {Object} holonUrl - Url of a holon whose status is needed
+ * @return Object with status of a method call and holon status
+ */
+const holonStatusCheck = async holonUrl => {
+  try {
+    const { data, status } = await axios(`${holonUrl}/healthcheck`, {
+      method: 'get',
+      timeout: 3000,
+    })
+    if (status === 200) {
+      return {
+        status: true,
+        health: data.status,
+      }
+    }
+    return {
+      status: true,
+      health: 'Down',
+    }
+  } catch (e) {
+    return { health: 'Down', message: e.message, status: false }
+  }
+}
 module.exports = {
   contractIdentifier,
   listHolonIds,
@@ -438,4 +465,5 @@ module.exports = {
   getHolonCitizens,
   addHolonCitizen,
   removeHolonCitizen,
+  holonStatusCheck,
 }
