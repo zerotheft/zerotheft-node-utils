@@ -138,7 +138,7 @@ const getHolonIdByAddress = async (holonAddress, holonContract = null) => {
   }
 }
 
-/* Return all Holon Services available */
+/* Get the Basic information of all holons  */
 const getHolons = async (type = 'array', holonHandler = null) => {
   if (holonHandler === null) {
     holonHandler = await getHolonContract()
