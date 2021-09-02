@@ -1,7 +1,14 @@
 const { initiateWeb3, instantiateContract, carryTransaction } = require('./web3')
 const { SHOULD_VALIDATE, GAS_PRICE, GAS_LIMIT } = require('../config')
 const { ensureAccountLoginAndGetDetails } = require('./storage')
-
+/**
+ * Web3 Class helps to carry out the transactions in the blockchain network.
+ * The core functionalities of this class are:
+ * a)Instantiate web3 which is very much required to identify the network to communicate.
+ * b)Based on web3 provider instantiate the contracts in that network.
+ * c)Perform read transaction from the blockchain to the particular contract. "callSmartContractGetFunc"
+ * d)Perform write transaction into the blockchain network. "createTransaction"
+ */
 class Web3 {
   constructor(contractName) {
     this.contractName = contractName

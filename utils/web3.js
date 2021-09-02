@@ -97,6 +97,13 @@ const getBalance = async (accType = 'regular') => {
   return bal ? web3.utils.fromWei(bal, 'ether') : 0
 }
 
+/**
+ * Contracts are called with the help of contract's abi. This method helps to connect the desired contract based on contract abi.
+ * All contract's abis are found in out s3 bucket in respective folder.
+ * @param {Object} web3 - Instance of web3 based on HTTP PROVIDER of the specific blockchain network.
+ * @param {string} contractName - Name of a specific contract to connect.
+ * @return {Array} Information of a contract
+ */
 const instantiateContract = async (web3, contractName) => {
   let contract = {}
   if (MODE === 'development') {
