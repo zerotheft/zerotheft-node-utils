@@ -454,6 +454,7 @@ const holonStatusCheck = async holonUrl => {
     if (status === 200) {
       return {
         status: true,
+        upTime: data.upTime,
         health: data.status,
       }
     }
