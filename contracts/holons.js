@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 const axios = require('axios')
 const { mean, uniq } = require('lodash')
 const { getCitizen, getCitizenIdByAddress } = require('./citizens')
@@ -142,15 +143,29 @@ const getHolonIdByAddress = async (holonAddress, holonContract = null) => {
 /* Get the Basic information of all holons  */
 const getHolons = async (type = 'array', holonHandler = null) => {
   if (holonHandler === null) {
+    // eslint-disable-next-line no-param-reassign
     holonHandler = await getHolonContract()
   }
   const holonIds = await getHolonIds()
   const holonList = []
   const holonObj = {}
+  const availabilityObj = {}
   if (holonIds) {
+    // eslint-disable-next-line no-restricted-syntax
     for (const holonKey of holonIds) {
       const holonInfo = await holonHandler.callSmartContractGetFunc('getHolon', [holonKey])
 
+      try {
+        const holonAvailability = await holonHandler.callSmartContractGetFunc('getHolonAvailability', [holonKey])
+        availabilityObj.currentStatus = holonAvailability.currentStatus
+        availabilityObj.upTime = holonAvailability.upTime
+        availabilityObj.trustability = holonAvailability.trustability
+        availabilityObj.startDate = holonAvailability.startDate
+        availabilityObj.endDate = holonAvailability.endDate
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.log('getHolonAvailability::', e.message)
+      }
       if (Object.keys(holonInfo).length > 0) {
         const objParms = {
           id: holonKey,
@@ -160,7 +175,10 @@ const getHolons = async (type = 'array', holonHandler = null) => {
           owner: holonInfo.owner,
           donationAddress: holonInfo.donationAddress,
         }
-        type === 'array' ? holonList.push(objParms) : (holonObj[holonKey] = objParms)
+        // eslint-disable-next-line no-unused-expressions
+        type === 'array'
+          ? holonList.push({ ...objParms, ...availabilityObj })
+          : (holonObj[holonKey] = { ...objParms, ...availabilityObj })
       }
     }
   }
