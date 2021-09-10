@@ -523,7 +523,7 @@ const getYamlFromCacheOrSmartContract = async (proposalId, path, contract, cache
     // if not found in cache then search blockchain
     filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
 
-    if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
+    if (Object.keys(proposal).length > 0) {
       const proposalYaml = await proposalC.callSmartContractGetFunc('getProposalYaml', [proposal.yamlBlock])
       const outputFiles = await fetchProposalYaml(proposalC, proposalYaml.firstBlock, 1)
       await splitFile.mergeFiles(outputFiles, filePath)
