@@ -154,7 +154,24 @@ const listProposalIds = async (contract = null) => {
   }
   return { allProposals, allProposalsCount }
 }
-
+/**
+ * Get proposal feedback(both rating and comments)
+ * @param {string} proposalID - address of a proposal
+ * @param {object} feedbackContract - instance of a feedback contract
+ * @returns proposal ratings and comments data as JSON
+ */
+const proposalFeedback = async (proposalID, feedbackContract = null) => {
+  if (!feedbackContract) {
+    feedbackContract = getFeedbackContract()
+    feedbackContract.init()
+  }
+  const ratingData = await proposalRating(feedbackContract, proposalID)
+  const commentData = await proposalComplaints(feedbackContract, proposalID)
+  if (!ratingData.success || !commentData.success) {
+    return { success: false, error: ratingData.error || commentData.error }
+  }
+  return { success: true, ratingData, commentData }
+}
 /*
  * Return proposal details based on proposal IDs
  */
@@ -164,7 +181,7 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
   }
   const proposal = await proposalContract.callSmartContractGetFunc('getProposal', [proposalId])
   const filePath = `${tmpPropDir}/main-${proposal.yamlBlock}.yaml`
-  if (!fs.existsSync(filePath) && Object.keys(proposal).length > 0) {
+  if (Object.keys(proposal).length > 0) {
     const proposalYaml = await proposalContract.callSmartContractGetFunc('getProposalYaml', [proposal.yamlBlock])
     const outputFiles = await fetchProposalYaml(proposalContract, proposalYaml.firstBlock, 1)
     await splitFile.mergeFiles(outputFiles, filePath)
@@ -341,24 +358,7 @@ const proposalComplaints = async (feedbackContract, proposalID) => {
     return { success: false, error: e.message }
   }
 }
-/**
- * Get proposal feedback(both rating and comments)
- * @param {string} proposalID - address of a proposal
- * @param {object} feedbackContract - instance of a feedback contract
- * @returns proposal ratings and comments data as JSON
- */
-const proposalFeedback = async (proposalID, feedbackContract = null) => {
-  if (!feedbackContract) {
-    feedbackContract = getFeedbackContract()
-    feedbackContract.init()
-  }
-  const ratingData = await proposalRating(feedbackContract, proposalID)
-  const commentData = await proposalComplaints(feedbackContract, proposalID)
-  if (!ratingData.success || !commentData.success) {
-    return { success: false, error: ratingData.error || commentData.error }
-  }
-  return { success: true, ratingData, commentData }
-}
+
 /**
  * Get individual citizen's feedback on a specific Proposal
  * @param {string} proposalID - address of a proposal
