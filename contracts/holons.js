@@ -149,10 +149,10 @@ const getHolons = async (type = 'array', holonHandler = null) => {
   const holonIds = await getHolonIds()
   const holonList = []
   const holonObj = {}
-  const availabilityObj = {}
   if (holonIds) {
     // eslint-disable-next-line no-restricted-syntax
     for (const holonKey of holonIds) {
+      const availabilityObj = {}
       const holonInfo = await holonHandler.callSmartContractGetFunc('getHolon', [holonKey])
 
       try {
