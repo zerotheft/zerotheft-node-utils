@@ -39,7 +39,7 @@ const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) =>
  * @param {array} paths - Array containing the items of a economic hierarchy file.
  * @return {array} Returning the full url of all paths from economic hierarchy file.
  */
-const makePathCrumbs = (path, allPaths = [], paths = []) => {
+const makePathCrumbs = (path, allPaths = {}, paths = []) => {
   // eslint-disable-next-line array-callback-return
   Object.keys(path).map(key => {
     if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version'].includes(key)) return
@@ -53,13 +53,13 @@ const makePathCrumbs = (path, allPaths = [], paths = []) => {
     if (path[key] && path.hasOwnProperty(key) && !path[key].leaf) {
       // make path crumbs from umbrella node aswell
       if (path[key].metadata && path[key].metadata.umbrella) {
-        allPaths.push(paths.join('/'))
+        allPaths[convertStringToHash(paths.join('/'))] = paths.join('/')
       }
       if (typeof path[key] !== 'string') {
         makePathCrumbs(path[key], allPaths, paths)
       }
     } else {
-      allPaths.push(paths.join('/'))
+      allPaths[convertStringToHash(paths.join('/'))] = paths.join('/')
     }
   })
   return allPaths
