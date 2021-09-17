@@ -5,9 +5,7 @@ const keybase = require('./utils/keybase')
 const web3 = require('./utils/web3')
 const storage = require('./utils/storage')
 const encryptor = require('./utils/encryptor')
-const access = require('./utils/accessControl')
 const helpers = require('./utils/helpers')
-
 const paths = require('./contracts/paths')
 const proposals = require('./contracts/proposals')
 const citizens = require('./contracts/citizens')
@@ -21,7 +19,6 @@ module.exports = {
   keybase,
   web3,
   storage,
-  access,
   paths,
   proposals,
   citizens,

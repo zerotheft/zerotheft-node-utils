@@ -149,10 +149,10 @@ const getHolons = async (type = 'array', holonHandler = null) => {
   const holonIds = await getHolonIds()
   const holonList = []
   const holonObj = {}
-  const availabilityObj = {}
   if (holonIds) {
     // eslint-disable-next-line no-restricted-syntax
     for (const holonKey of holonIds) {
+      const availabilityObj = {}
       const holonInfo = await holonHandler.callSmartContractGetFunc('getHolon', [holonKey])
 
       try {
@@ -461,9 +461,10 @@ const holonStatusCheck = async holonUrl => {
     return {
       status: true,
       health: 'Down',
+      upTime: 0,
     }
   } catch (e) {
-    return { health: 'Down', message: e.message, status: false }
+    return { health: 'Down', upTime: 0, message: e.message, status: false }
   }
 }
 module.exports = {

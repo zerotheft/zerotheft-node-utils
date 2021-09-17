@@ -1,5 +1,6 @@
+/* eslint-disable no-console */
 const fs = require('fs')
-const { get, remove, uniq } = require('lodash')
+const { get, remove, uniq, isEmpty } = require('lodash')
 const { getProposalContract, getVoteContract } = require('../utils/contract')
 const { convertStringToHash } = require('../utils/web3')
 const { getProposalDetails } = require('./proposals')
@@ -83,9 +84,10 @@ const citizenPriorVote = async body => {
 
     const { citizenSpecificVotes } = await voteDataRollupsFile()
     // let priorvoteID = await voterC.callSmartContractGetFunc('getCitizenSpecificVote', [body.address, convertStringToHash(body.url)])
+    const citizenAddress = body.address.toLowerCase()
     const priorvoteID =
-      !isEmpty(citizenSpecificVotes) && citizenSpecificVotes[body.address]
-        ? get(citizenSpecificVotes[body.address], convertStringToHash(body.url), 0)
+      !isEmpty(citizenSpecificVotes) && citizenSpecificVotes[citizenAddress]
+        ? get(citizenSpecificVotes[citizenAddress], convertStringToHash(body.url), 0)
         : 0
     if (priorvoteID <= 0) throw new Error('no prior votes')
     const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])

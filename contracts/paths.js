@@ -39,7 +39,7 @@ const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) =>
  * @param {array} paths - Array containing the items of a economic hierarchy file.
  * @return {array} Returning the full url of all paths from economic hierarchy file.
  */
-const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
+const makePathCrumbs = (path, allPaths = [], paths = []) => {
   // eslint-disable-next-line array-callback-return
   Object.keys(path).map(key => {
     if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version'].includes(key)) return
@@ -49,8 +49,12 @@ const makePathCrumbs = (path = pathYamlContent, allPaths = [], paths = []) => {
       }
     })
     paths.push(key)
-    if (key === '0' || typeof path === 'string') {
-    } else if (path[key] && path.hasOwnProperty(key) && !path[key].leaf) {
+    // eslint-disable-next-line no-prototype-builtins
+    if (path[key] && path.hasOwnProperty(key) && !path[key].leaf) {
+      // make path crumbs from umbrella node aswell
+      if (path[key].metadata && path[key].metadata.umbrella) {
+        allPaths.push(paths.join('/'))
+      }
       if (typeof path[key] !== 'string') {
         makePathCrumbs(path[key], allPaths, paths)
       }
@@ -84,7 +88,7 @@ const allNations = async () => {
         await splitFile.mergeFiles(outputFiles, pathDir)
       }
       const pathYamlContent = yaml.safeLoad(fs.readFileSync(pathDir, 'utf8'))
-
+      const umbrelllas = await getUmbrellaPaths(nation)
       return {
         pathRoot: path.pathRoot,
         nation,
@@ -129,6 +133,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
     const paths = pathData[nation]
     const umbrellas = {}
     const traversePath = async (pathNode, path = '') => {
+      // eslint-disable-next-line no-restricted-syntax
       for (const enode of Object.keys(pathNode)) {
         if (enode === 'metadata' && pathNode[enode].umbrella) {
           umbrellas[path.toString()] = {
@@ -137,6 +142,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
         }
         const newPath = path ? `${path}/${enode}` : enode
         if (['display_name', 'leaf', 'umbrella', 'parent', 'metadata'].includes(enode)) {
+          // eslint-disable-next-line no-continue
           continue
         }
         traversePath(pathNode[enode], newPath)
