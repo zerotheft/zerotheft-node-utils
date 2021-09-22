@@ -461,9 +461,10 @@ const holonStatusCheck = async holonUrl => {
     return {
       status: true,
       health: 'Down',
+      upTime: 0,
     }
   } catch (e) {
-    return { health: 'Down', message: e.message, status: false }
+    return { health: 'Down', upTime: 0, message: e.message, status: false }
   }
 }
 module.exports = {
