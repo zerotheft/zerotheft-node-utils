@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable no-await-in-loop */
 const axios = require('axios')
 const { mean, uniq } = require('lodash')
@@ -94,7 +95,7 @@ const getHolonIds = async (contract = null) => {
   }
 
   let allHolonIDs = []
-  const { allHolons, allHolonsCount } = await listHolonIds(contract)
+  const { allHolons } = await listHolonIds(contract)
   Object.keys(allHolons).forEach(version => {
     const holonIDs = allHolons[version].map(index => `${contractIdentifier}:${version}:${index}`)
     allHolonIDs = allHolonIDs.concat(holonIDs)
@@ -102,8 +103,11 @@ const getHolonIds = async (contract = null) => {
   return allHolonIDs
 }
 /* get holon information based on holon address */
-const getHolon = async (holonContract, holonID) => {
+const getHolon = async (holonID, holonContract = null) => {
   try {
+    if (holonContract === null) {
+      holonContract = getHolonContract()
+    }
     const holonInfo = await holonContract.callSmartContractGetFunc('getHolon', [holonID])
     const holonData = {
       name: holonInfo.holonName,
