@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
 const fs = require('fs')
 const { get, remove, uniq, isEmpty } = require('lodash')
@@ -39,8 +40,10 @@ const getVoteContractVersion = async (voteContract = null) => {
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
   const _voter = get(rollups.citizenSpecificVotes, voteData.voter.toLowerCase(), {})
-  const _vote = get(_voter, proposalInfo.path, voteData.voteID)
-  _voter[proposalInfo.path] = _vote
+  // const _vote = get(_voter, proposalInfo.path, voteData.voteID)
+  // console.log(_vote)
+
+  _voter[proposalInfo.path] = voteData.voteID
   rollups.citizenSpecificVotes[voteData.voter.toLowerCase()] = _voter
 
   // if prior Vote is present
@@ -49,9 +52,9 @@ const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) =>
     const _priorPropID = _priorVote.voteIsTheft === 'True' ? _priorVote.yesTheftProposal : _priorVote.noTheftProposal
     const _priorPVotes = get(rollups.proposalVotes, _priorPropID, [])
     remove(_priorPVotes, _v => _v === voteData.voteReplaces)
-    const _pArchiveVotes = get(rollups.proposalArchiveVotes, voteData.proposalID, [])
+    const _pArchiveVotes = get(rollups.proposalArchiveVotes, _priorPropID, [])
     _pArchiveVotes.push(voteData.voteReplaces)
-    rollups.proposalArchiveVotes[voteData.proposalID] = uniq(_pArchiveVotes)
+    rollups.proposalArchiveVotes[_priorPropID] = uniq(_pArchiveVotes)
   }
 
   const _pvotes = get(rollups.proposalVotes, voteData.proposalID, [])
