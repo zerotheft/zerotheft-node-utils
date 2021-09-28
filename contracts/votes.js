@@ -37,26 +37,57 @@ const getVoteContractVersion = async (voteContract = null) => {
   }
 }
 
+// const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
+//   // keep the roll ups record in file
+//   const _voter = get(rollups.citizenSpecificVotes, voteData.voter.toLowerCase(), {})
+//   // const _vote = get(_voter, proposalInfo.path, voteData.voteID)
+//   // console.log(_vote)
+
+//   _voter[proposalInfo.path] = voteData.voteID
+//   rollups.citizenSpecificVotes[voteData.voter.toLowerCase()] = _voter
+
+//   // if prior Vote is present
+//   if (voteData.voteReplaces !== '') {
+//     const _priorVote = await voterC.callSmartContractGetFunc('getVote', [voteData.voteReplaces])
+//     const _priorPropID = _priorVote.voteIsTheft === 'True' ? _priorVote.yesTheftProposal : _priorVote.noTheftProposal
+//     const _priorPVotes = get(rollups.proposalVotes, _priorPropID, [])
+//     remove(_priorPVotes, _v => _v === voteData.voteReplaces)
+//     const _pArchiveVotes = get(rollups.proposalArchiveVotes, _priorPropID, [])
+//     _pArchiveVotes.push(voteData.voteReplaces)
+//     rollups.proposalArchiveVotes[_priorPropID] = uniq(_pArchiveVotes)
+//   }
+
+//   const _pvotes = get(rollups.proposalVotes, voteData.proposalID, [])
+//   _pvotes.push(voteData.voteID)
+//   rollups.proposalVotes[voteData.proposalID] = uniq(_pvotes)
+
+//   const _pvoters = get(rollups.proposalVoters, voteData.proposalID, [])
+//   _pvoters.push(voteData.voter.toLowerCase())
+//   rollups.proposalVoters[voteData.proposalID] = uniq(_pvoters)
+//   console.log('updating', rollups)
+// }
+
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
   const _voter = get(rollups.citizenSpecificVotes, voteData.voter.toLowerCase(), {})
-  // const _vote = get(_voter, proposalInfo.path, voteData.voteID)
-  // console.log(_vote)
+  // if this citizen already gave a vote to this path then get the vote data(vote_id,vote_time)
+  const _priorVoteData = get(_voter, proposalInfo.path, {})
 
-  _voter[proposalInfo.path] = voteData.voteID
+  _voter[proposalInfo.path] = { vote_id: voteData.voteID, vote_time: voteData.castedOn }
   rollups.citizenSpecificVotes[voteData.voter.toLowerCase()] = _voter
 
-  // if prior Vote is present
-  if (voteData.voteReplaces !== '') {
-    const _priorVote = await voterC.callSmartContractGetFunc('getVote', [voteData.voteReplaces])
+  // if prior Vote is present; i.e _priorVoteData is not empty and priorVote casted time earlier than the current voteData casted time
+  if (!isEmpty(_priorVoteData) && _priorVoteData.vote_time < voteData.castedOn) {
+    const _priorVote = await voterC.callSmartContractGetFunc('getVote', [_priorVoteData.vote_id])
     const _priorPropID = _priorVote.voteIsTheft === 'True' ? _priorVote.yesTheftProposal : _priorVote.noTheftProposal
     const _priorPVotes = get(rollups.proposalVotes, _priorPropID, [])
-    remove(_priorPVotes, _v => _v === voteData.voteReplaces)
+
+    // remove(_priorPVotes, _v => _v === voteData.voteReplaces)
+    remove(_priorPVotes, _v => _v === _priorVoteData.vote_id)
     const _pArchiveVotes = get(rollups.proposalArchiveVotes, _priorPropID, [])
-    _pArchiveVotes.push(voteData.voteReplaces)
+    _pArchiveVotes.push(_priorVoteData.vote_id)
     rollups.proposalArchiveVotes[_priorPropID] = uniq(_pArchiveVotes)
   }
-
   const _pvotes = get(rollups.proposalVotes, voteData.proposalID, [])
   _pvotes.push(voteData.voteID)
   rollups.proposalVotes[voteData.proposalID] = uniq(_pvotes)
@@ -71,6 +102,7 @@ const saveVoteRollupsData = async voteData => {
   if (!fs.existsSync(exportsDirNation)) {
     fs.mkdirSync(exportsDirNation, { recursive: true })
   }
+  console.log('save', voteData)
   if (voteData.citizenSpecificVotes) await writeFile(citizenSpecificVotesFile, voteData.citizenSpecificVotes)
   if (voteData.proposalVotes) await writeFile(proposalVotesFile, voteData.proposalVotes)
   if (voteData.proposalVoters) await writeFile(proposalVotersFile, voteData.proposalVoters)
@@ -93,11 +125,11 @@ const citizenPriorVote = async body => {
         ? get(citizenSpecificVotes[citizenAddress], convertStringToHash(body.url), 0)
         : 0
     if (priorvoteID <= 0) throw new Error('no prior votes')
-    const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID])
+    const vote = await voterC.callSmartContractGetFunc('getVote', [priorvoteID.vote_id])
     const proposalID = vote.voteIsTheft === 'True' ? vote.yesTheftProposal : vote.noTheftProposal
     const proposal = await getProposalDetails(proposalID, proposalC)
 
-    return { success: true, id: priorvoteID, pid: proposal.id, ...vote }
+    return { success: true, id: priorvoteID.vote_id, pid: proposal.id, ...vote }
   } catch (e) {
     console.log('citizenPriorVote::', e.message)
     return { success: false, error: e.message }
@@ -117,10 +149,10 @@ const voteDataRollups = async body => {
     const { voteIndex } = body
     if (!voteIndex) throw new Error('vote voteIndex not present')
     const voteID = `${contractIdentifier}:${voteRes.version}:${voteIndex}`
-    const { voter, voteIsTheft, yesTheftProposal, noTheftProposal } = await voterC.callSmartContractGetFunc('getVote', [
-      voteID,
-    ])
-    const { voteReplaces } = await voterC.callSmartContractGetFunc('getVoteExtra', [voteID])
+    const { voter, voteIsTheft, yesTheftProposal, noTheftProposal, date } = await voterC.callSmartContractGetFunc(
+      'getVote',
+      [voteID]
+    )
     const proposalID = voteIsTheft === 'True' ? yesTheftProposal : noTheftProposal
     const proposalInfo = await proposalC.callSmartContractGetFunc('getProposal', [proposalID])
 
@@ -129,7 +161,7 @@ const voteDataRollups = async body => {
     // keep the roll ups record in file
     await updateVoteDataRollups(
       { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes },
-      { voter, voteID, proposalID, voteReplaces },
+      { voter, voteID, proposalID, castedOn: date },
       proposalInfo,
       voterC
     )
