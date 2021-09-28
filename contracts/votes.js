@@ -37,36 +37,6 @@ const getVoteContractVersion = async (voteContract = null) => {
   }
 }
 
-// const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
-//   // keep the roll ups record in file
-//   const _voter = get(rollups.citizenSpecificVotes, voteData.voter.toLowerCase(), {})
-//   // const _vote = get(_voter, proposalInfo.path, voteData.voteID)
-//   // console.log(_vote)
-
-//   _voter[proposalInfo.path] = voteData.voteID
-//   rollups.citizenSpecificVotes[voteData.voter.toLowerCase()] = _voter
-
-//   // if prior Vote is present
-//   if (voteData.voteReplaces !== '') {
-//     const _priorVote = await voterC.callSmartContractGetFunc('getVote', [voteData.voteReplaces])
-//     const _priorPropID = _priorVote.voteIsTheft === 'True' ? _priorVote.yesTheftProposal : _priorVote.noTheftProposal
-//     const _priorPVotes = get(rollups.proposalVotes, _priorPropID, [])
-//     remove(_priorPVotes, _v => _v === voteData.voteReplaces)
-//     const _pArchiveVotes = get(rollups.proposalArchiveVotes, _priorPropID, [])
-//     _pArchiveVotes.push(voteData.voteReplaces)
-//     rollups.proposalArchiveVotes[_priorPropID] = uniq(_pArchiveVotes)
-//   }
-
-//   const _pvotes = get(rollups.proposalVotes, voteData.proposalID, [])
-//   _pvotes.push(voteData.voteID)
-//   rollups.proposalVotes[voteData.proposalID] = uniq(_pvotes)
-
-//   const _pvoters = get(rollups.proposalVoters, voteData.proposalID, [])
-//   _pvoters.push(voteData.voter.toLowerCase())
-//   rollups.proposalVoters[voteData.proposalID] = uniq(_pvoters)
-//   console.log('updating', rollups)
-// }
-
 const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) => {
   // keep the roll ups record in file
   const _voter = get(rollups.citizenSpecificVotes, voteData.voter.toLowerCase(), {})

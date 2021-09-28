@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable radix */
 const fs = require('fs')
 const dir = require('path')
@@ -146,6 +147,7 @@ const listProposalIds = async (contract = null) => {
         cursor += howMany
       } while (1)
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(e.message)
     }
     allProposals[verRes.version] = versionProposals
@@ -153,6 +155,80 @@ const listProposalIds = async (contract = null) => {
     verRes.number--
   }
   return { allProposals, allProposalsCount }
+}
+/**
+ * Get the rating information of a particular proposal
+ * @param {object} feedbackContract - instance of a feedback contract
+ * @param {string} proposalID - address of a proposal
+ * @returns json object with proposal rating information
+ */
+const proposalRating = async (feedbackContract, proposalID) => {
+  try {
+    const verRes = await getFeedbackContractVersion(feedbackContract)
+    let version = verRes.number
+    let allFeedbackers = []
+    while (version > 0) {
+      const feedbackers = await feedbackContract.callSmartContractGetFunc('totalProposalRaters', [proposalID, version])
+      allFeedbackers = allFeedbackers.concat(feedbackers)
+      version--
+    }
+    const ratingPromises = allFeedbackers.map(async feedbacker => {
+      const feedback = await feedbackContract.callSmartContractGetFunc('getProposalRating', [proposalID, feedbacker])
+      return parseInt(feedback.rating)
+    })
+    const allRatings = await Promise.all(ratingPromises)
+    return { success: true, count: allFeedbackers.length, rating: mean(allRatings) || 0 }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
+}
+
+/**
+ * Get Proposal comments provided by citizen
+ * @param {object} feedbackContract - feeback contract instance
+ * @param {string} proposalID - address of a proposal
+ * @returns proposal comments data as JSON
+ */
+const proposalComplaints = async (feedbackContract, proposalID) => {
+  try {
+    const complaints = {}
+    let allComplainers = []
+    const verRes = await getFeedbackContractVersion(feedbackContract)
+    let version = verRes.number
+    while (version > 0) {
+      const complainers = await feedbackContract.callSmartContractGetFunc('totalProposalCommentors', [
+        proposalID,
+        version,
+      ])
+      allComplainers = allComplainers.concat(complainers)
+      version--
+    }
+    const complaintPromises = allComplainers.map(async complainer => {
+      const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [
+        proposalID,
+        complainer,
+      ])
+      const cres = await getCitizenIdByAddress(complainer)
+      const citizenInfo = await getCitizen(cres.citizenID)
+      for (let i = 1; i <= parseInt(countRes); i++) {
+        const complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [
+          proposalID,
+          complainer,
+          i,
+        ])
+        complaints[complaintInfo.createdAt] = {
+          complainer: citizenInfo.name,
+          description: complaintInfo.description,
+          date: complaintInfo.createdAt,
+        }
+      }
+    })
+    await Promise.all(complaintPromises)
+
+    return { success: true, count: Object.keys(complaints).length, allComplaints: complaints }
+  } catch (e) {
+    return { success: false, error: e.message }
+  }
 }
 /**
  * Get proposal feedback(both rating and comments)
@@ -163,7 +239,6 @@ const listProposalIds = async (contract = null) => {
 const proposalFeedback = async (proposalID, feedbackContract = null) => {
   if (!feedbackContract) {
     feedbackContract = getFeedbackContract()
-    feedbackContract.init()
   }
   const ratingData = await proposalRating(feedbackContract, proposalID)
   const commentData = await proposalComplaints(feedbackContract, proposalID)
@@ -193,9 +268,9 @@ const getProposalDetails = async (proposalId, proposalContract = null) => {
   const { theftYears, theftAmt } = proposalYearTheftInfo(file)
   const summary = `$${abbreviateNumber(theftAmt)}`
   // get ratings of proposal
-  const feedbacks = await proposalFeedback(proposalId, proposalContract)
+  const feedbacks = await proposalFeedback(proposalId)
   const ratings = get(feedbacks, 'ratingData', 0)
-  const complaints = get(feedbacks, 'complaintData', 0)
+  const complaints = get(feedbacks, 'commentData', 0)
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath)
   }
@@ -283,81 +358,6 @@ const voteByHolon = async body => {
  * Fetch proposal template based on path and return yaml content
  */
 const getProposalTemplate = path => getGithubTemplate(path)
-/**
- * Get the rating information of a particular proposal
- * @param {object} feedbackContract - instance of a feedback contract
- * @param {string} proposalID - address of a proposal
- * @returns json object with proposal rating information
- */
-const proposalRating = async (feedbackContract, proposalID) => {
-  try {
-    const verRes = await getFeedbackContractVersion(feedbackContract)
-    let version = verRes.number
-    let allFeedbackers = []
-    while (version > 0) {
-      const feedbackers = await feedbackContract.callSmartContractGetFunc('totalProposalRaters', [proposalID, version])
-      allFeedbackers = allFeedbackers.concat(feedbackers)
-      version--
-    }
-
-    const ratingPromises = allFeedbackers.map(async feedbacker => {
-      const feedback = await feedbackContract.callSmartContractGetFunc('getProposalRating', [proposalID, feedbacker])
-      return parseInt(feedback.rating)
-    })
-    const allRatings = await Promise.all(ratingPromises)
-    return { success: true, count: allFeedbackers.length, rating: mean(allRatings) || 0 }
-  } catch (e) {
-    return { success: false, error: e.message }
-  }
-}
-
-/**
- * Get Proposal comments provided by citizen
- * @param {object} feedbackContract - feeback contract instance
- * @param {string} proposalID - address of a proposal
- * @returns proposal comments data as JSON
- */
-const proposalComplaints = async (feedbackContract, proposalID) => {
-  try {
-    const complaints = {}
-    let allComplainers = []
-    const verRes = await getFeedbackContractVersion(feedbackContract)
-    let version = verRes.number
-    while (version > 0) {
-      const complainers = await feedbackContract.callSmartContractGetFunc('totalProposalCommentors', [
-        proposalID,
-        version,
-      ])
-      allComplainers = allComplainers.concat(complainers)
-      version--
-    }
-    const complaintPromises = allComplainers.map(async complainer => {
-      const countRes = await feedbackContract.callSmartContractGetFunc('countCitizenCommentsToProposal', [
-        proposalID,
-        complainer,
-      ])
-      const cres = await getCitizenIdByAddress(complainer)
-      const citizenInfo = await getCitizen(cres.citizenID)
-      for (let i = 1; i <= parseInt(countRes); i++) {
-        const complaintInfo = await feedbackContract.callSmartContractGetFunc('getCitizenCommentToProposal', [
-          proposalID,
-          complainer,
-          i,
-        ])
-        complaints[complaintInfo.createdAt] = {
-          complainer: citizenInfo.name,
-          description: complaintInfo.description,
-          date: complaintInfo.createdAt,
-        }
-      }
-    })
-    await Promise.all(complaintPromises)
-
-    return { success: true, count: Object.keys(complaints).length, allComplaints: complaints }
-  } catch (e) {
-    return { success: false, error: e.message }
-  }
-}
 
 /**
  * Get individual citizen's feedback on a specific Proposal
@@ -424,15 +424,14 @@ const getCachedProposalsByPathsDir = path => {
 
 /**
  * Returns proposal details by path. Eventhough this method tries to fetch the proposals based on path
- * @param {string} path
- * @param {Object} contract
- * @param {Object} voterContract
- * @returns proposal JSONs
+ * @param {string} path - Economic Hierarchy Path whose proposals are needed
+ * @param {Object} contract - Instance of ZTMProposals contract
+ * @returns Array of proposal JSONs
  */
-const getPathProposalsByPath = async (path, contract, voterContract) => {
+const getPathProposalsByPath = async (path, contract) => {
   const pathHash = convertStringToHash(path)
-  const proposalC = contract || getProposalContract()
-  // const voterC = voterContract || getVoteContract()
+  const proposalContract = contract || getProposalContract()
+  const feedbackContract = getFeedbackContract()
 
   const { data: cachedProposalsByPaths, file } = getCachedProposalsByPathsDir(pathHash)
   // get cachedproposal
@@ -445,21 +444,20 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
   let allPropsData = []
   const verRes = await getProposalContractVersion(contract)
   while (verRes.number > 0) {
-    const { propIds } = await proposalC.callSmartContractGetFunc('allProposalsByPath', [pathHash, verRes.number])
+    const { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [pathHash, verRes.number])
     const { results, errors } = await PromisePool.withConcurrency(1)
       .for(propIds)
       .process(async pid => {
         try {
           pid = `${contractIdentifier}:v${verRes.number}:${pid}`
 
-          const pData = await getProposalData(pid, cachedProposalsByPaths, proposalC, cachedFiles, path)
+          const pData = await getProposalData(pid, cachedProposalsByPaths, proposalContract, cachedFiles, path)
 
           const { proposalVotes } = await voteDataRollupsFile()
           //   const voterRes = await voterC.callSmartContractGetFunc('getProposalVotesInfo', [pid])
-          const feedbacks = await proposalFeedback(pid, proposalC)
-
+          const feedbacks = await proposalFeedback(pid, feedbackContract)
           const ratings = get(feedbacks, 'ratingData', 0)
-          const complaints = get(feedbacks, 'complaintData', 0)
+          const complaints = get(feedbacks, 'commentData', 0)
           if (!pData.fromCache) {
             newProposals[pid] = pData.proposal
           }
@@ -470,6 +468,7 @@ const getPathProposalsByPath = async (path, contract, voterContract) => {
             complaints,
           }
         } catch (e) {
+          // eslint-disable-next-line no-console
           console.log('getPathProposalsByPath', pid, e)
           return null
         }
