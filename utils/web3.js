@@ -144,11 +144,10 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     }
     let networkId
     let chainId
-
-    if (networkType !== 'eth' && (config.NETWORK_NAME === 'kotti' || config.NETWORK_NAME === 'mainnet')) {
+    if (networkType !== 'eth' && (config.NETWORK_NAME === 'kotti' || config.NETWORK_NAME === 'etc')) {
       networkId = config.NETWORK_NAME === 'kotti' ? 6 : 1
       chainId = config.NETWORK_NAME === 'kotti' ? 6 : 61
-    } else if (['privatenet', 'devprivatenet'].includes(config.NETWORK_NAME)) {
+    } else if (['privatenet', 'devprivatenet', 'stagingnet', 'mainnet'].includes(config.NETWORK_NAME)) {
       networkId = chainId = config.NETWORK_ID
     }
 
