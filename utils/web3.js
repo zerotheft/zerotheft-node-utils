@@ -67,7 +67,7 @@ const decryptEthAddress = obj => {
 const transferFund = async (from, to, privateKey, amount, accType = 'regular', gasPrice = GAS_PRICE) => {
   try {
     const web3 = initiateWeb3(undefined, accType)
-    const storage = await ensureAccountLoginAndGetDetails(accType)
+    // const storage = await ensureAccountLoginAndGetDetails(accType)
     const without0x = privateKey.split('0x')[1]
     const newPrivateKey = without0x || privateKey
     // eslint-disable-next-line no-use-before-define
@@ -76,7 +76,7 @@ const transferFund = async (from, to, privateKey, amount, accType = 'regular', g
       from,
       newPrivateKey,
       {
-        to: to || storage.address,
+        to,
         value: web3.utils.toHex(web3.utils.toWei(amount.toString(), 'ether')),
         gasLimit: web3.utils.toHex(config.GAS_LIMIT || 300000),
         gasPrice: web3.utils.toHex(web3.utils.toWei((gasPrice || '1').toString(), 'gwei')),
@@ -140,11 +140,10 @@ const carryTransaction = async (web3, address, privateKey, obj, networkType = 'r
     }
     let networkId
     let chainId
-
-    if (networkType !== 'eth' && (config.NETWORK_NAME === 'kotti' || config.NETWORK_NAME === 'mainnet')) {
+    if (networkType !== 'eth' && (config.NETWORK_NAME === 'kotti' || config.NETWORK_NAME === 'etc')) {
       networkId = config.NETWORK_NAME === 'kotti' ? 6 : 1
       chainId = config.NETWORK_NAME === 'kotti' ? 6 : 61
-    } else if (['privatenet', 'devprivatenet'].includes(config.NETWORK_NAME)) {
+    } else if (['privatenet', 'devprivatenet', 'stagingnet', 'mainnet'].includes(config.NETWORK_NAME)) {
       networkId = chainId = config.NETWORK_ID
     }
 

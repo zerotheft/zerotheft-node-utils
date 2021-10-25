@@ -13,11 +13,10 @@ const getCitizenIdByAddress = async (citizenAddress, citizenContract = null) => 
     citizenContract = await getCitizenContract()
   }
   try {
-    const {
-      citizenID,
-      citizenIndex,
-      contractVersion,
-    } = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenAddressIndex', [citizenAddress])
+    const { citizenID, citizenIndex, contractVersion } = await citizenContract.callSmartContractGetFunc(
+      'getUnverifiedCitizenAddressIndex',
+      [citizenAddress]
+    )
     if (parseInt(citizenIndex) === 0) throw new Error('citizen not found')
     return {
       success: true,
@@ -55,7 +54,7 @@ const getCitizen = async (citizenID, citizenContract = null) => {
   }
   try {
     const citizen = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizen', [citizenID])
-    const citizenExtra = await citizenContract.callSmartContractGetFunc('getUnverifiedCitienExtraData', [citizenID])
+    const citizenExtra = await citizenContract.callSmartContractGetFunc('getUnverifiedCitizenExtraData', [citizenID])
 
     return {
       success: true,
