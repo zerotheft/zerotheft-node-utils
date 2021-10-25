@@ -88,11 +88,15 @@ const transferFund = async (from, to, privateKey, amount, accType = 'regular', g
   }
 }
 
-const getBalance = async (accType = 'regular') => {
-  const storage = await ensureAccountLoginAndGetDetails(accType)
-  if (!storage) return
+const getBalance = async (address, accType = 'regular') => {
+  if (!address) {
+    const storage = await ensureAccountLoginAndGetDetails(accType)
+    if (!storage) return
+    // eslint-disable-next-line no-param-reassign
+    address = storage.address
+  }
   const web3 = initiateWeb3(undefined, accType)
-  const bal = await web3.eth.getBalance(storage.address)
+  const bal = await web3.eth.getBalance(address)
   // eslint-disable-next-line consistent-return
   return bal ? web3.utils.fromWei(bal, 'ether') : 0
 }
