@@ -86,4 +86,5 @@ module.exports = {
   APP_PATH: maindir,
   GAS_LIMIT: envConfig.GAS_LIMIT || 300000,
   TOKEN: ['staging', 'production'].includes(MODE) ? 'Matic' : 'ETC',
+  IS_POLYGON: ['staging', 'production'].includes(MODE),
 };
