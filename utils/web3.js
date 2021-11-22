@@ -55,6 +55,35 @@ const importByPrivateKey = async privateKey => {
 }
 
 /**
+ * Sync data sent from extension
+ * @param {string} address - address to be synced
+ * @param {string} mnemonic - mnemonic of the above address
+ * @param {string} privateKey - private key of the address
+ * @return {boolean} flag for successful completion
+ */
+const syncDataFromExtension = async (
+  address,
+  mnemonic,
+  privateKey,
+  accType = 'regular'
+) => {
+  const web3 = initiateWeb3();
+  const encryptedKey = web3.eth.accounts.encrypt(
+    privateKey,
+    ADDRESS_ENCRYPT_KEY
+  );
+
+  await updateStorageValues(
+    address,
+    privateKey,
+    null,
+    { mnemonic: encrypt(mnemonic, ADDRESS_ENCRYPT_KEY) },
+    accType
+  );
+  return true;
+};
+
+/**
  * Decrypt the ethere address
  * @param {Object} obj - ethereum address detail that needs to be decrypted
  * @return {Object} decrypted information as a JSON object
@@ -256,4 +285,5 @@ module.exports = {
   convertToAscii,
   convertHexToAscii,
   signMessage,
+  syncDataFromExtension,
 }
