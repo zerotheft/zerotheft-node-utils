@@ -26,7 +26,7 @@ const ENV_MODE = getEnvValue().MODE
 const MODE = ENV_MODE || process.env.REACT_APP_MODE || process.env.NODE_ENV
 
 const net =
-  MODE === 'production' ? 'mainnet' : MODE === 'development' ? 'devnet' : MODE === 'staging' ? 'testnet' : 'privatenet'
+  MODE === 'production' ? 'mainnet' : MODE === 'development' ? 'devnet' : MODE === 'staging' ? 'stagingnet' : 'privatenet'
 const pathName = path.join(homedir, '.zt', net, 'eth.json')
 const proxyData = path.join(homedir, '.zt', net, 'proxyData.json')
 const historyPathName = path.join(homedir, '.zt', net, 'history.json')
@@ -36,7 +36,7 @@ const developerErrorsPathName = path.join(homedir, '.zt', 'developerError.json')
 const dir = path.join(homedir, '.zt')
 const devnetDir = path.join(homedir, '.zt', 'devnet')
 const mainnetDir = path.join(homedir, '.zt', 'mainnet')
-const testnetDir = path.join(homedir, '.zt', 'testnet')
+const stagingnetDir = path.join(homedir, '.zt', 'stagingnet')
 const privatenetDir = path.join(homedir, '.zt', 'privatenet')
 
 const getStorageValues = (type = 'regular', decrypt = true) => {
@@ -72,7 +72,7 @@ const createFolders = () => {
   createFolder(dir)
   createFolder(devnetDir)
   createFolder(mainnetDir)
-  createFolder(testnetDir)
+  createFolder(stagingnetDir)
   createFolder(privatenetDir)
 }
 
