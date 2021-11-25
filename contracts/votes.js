@@ -119,10 +119,13 @@ const voteDataRollups = async body => {
     const { voteIndex } = body
     if (!voteIndex) throw new Error('vote voteIndex not present')
     const voteID = `${contractIdentifier}:${voteRes.version}:${voteIndex}`
-    const { voter, voteIsTheft, yesTheftProposal, noTheftProposal, date } = await voterC.callSmartContractGetFunc(
-      'getVote',
-      [voteID]
-    )
+    const {
+      voter,
+      voteIsTheft,
+      yesTheftProposal,
+      noTheftProposal,
+      date,
+    } = await voterC.callSmartContractGetFunc('getVote', [voteID])
     const proposalID = voteIsTheft === 'True' ? yesTheftProposal : noTheftProposal
     const proposalInfo = await proposalC.callSmartContractGetFunc('getProposal', [proposalID])
 
