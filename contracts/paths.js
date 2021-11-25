@@ -53,7 +53,6 @@ const listHierarchyAreas = async (contract = null) => {
     contract = getPathContract()
   }
   const verRes = await getHierarchyContractVersion(contract)
-  console.log(verRes)
   let version = verRes.number
   let allAreas = []
   while (version > 0) {
@@ -288,6 +287,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
 module.exports = {
   getHierarchyContractVersion,
   listHierarchyAreas,
+  pathYamlContent,
   allNations,
   getPathDetail,
   pathsByNation,
