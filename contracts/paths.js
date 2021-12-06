@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 const fs = require('fs')
 const PromisePool = require('@supercharge/promise-pool')
 const dir = require('path')
@@ -7,6 +8,7 @@ const { getPathContract, getProposalContract, getVoteContract } = require('../ut
 const { convertStringToHash } = require('../utils/web3')
 const { updateUmbrellaPaths } = require('../utils/storage')
 const { APP_PATH } = require('../config')
+const { voteDataRollupsFile } = require('../utils/common')
 
 // eslint-disable-next-line import/order
 const homedir = APP_PATH || require('os').homedir()
@@ -15,6 +17,7 @@ const {
   getProposalContractVersion,
   getProposalDetails,
 } = require('./proposals')
+const { get } = require('lodash')
 
 const pathYamlDir = dir.join(homedir, '.zt', '/pathYamls')
 if (!fs.existsSync(pathYamlDir)) {
@@ -90,7 +93,7 @@ const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) =>
 const makePathCrumbs = (path, allPaths = {}, paths = []) => {
   // eslint-disable-next-line array-callback-return
   Object.keys(path).map(key => {
-    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version'].includes(key)) return
+    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version', 'priority'].includes(key)) return
     Object.keys(path).forEach(item => {
       if (paths.indexOf(item) > 0) {
         paths.length = paths.indexOf(item)
@@ -112,6 +115,44 @@ const makePathCrumbs = (path, allPaths = {}, paths = []) => {
   })
   return allPaths
 }
+
+/**
+ * Categorize the areas from their priority level and return the list of areas.
+ * @param {Object} path - Content of a path yaml file.
+ * @param {array} allPaths - Array containing the url of path from economic hierarchy file.
+ * @param {array} paths - Array containing the items of a economic hierarchy file.
+ * @return {array} Returning list of areas with their priority level
+ */
+const areaPriorityList = (path, allPaths = {}, paths = []) => {
+  // eslint-disable-next-line array-callback-return
+  Object.keys(path).map(key => {
+    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version', 'priority'].includes(key)) return
+    Object.keys(path).forEach(item => {
+      if (paths.indexOf(item) > 0) {
+        paths.length = paths.indexOf(item)
+      }
+    })
+    paths.push(key)
+    // eslint-disable-next-line no-prototype-builtins
+    if (path[key] && path.hasOwnProperty(key) && !path[key].leaf) {
+      // make path crumbs from umbrella node as well
+      if (path[key].metadata && path[key].metadata.umbrella) {
+        const priorityList = get(allPaths, path[key].metadata.priority, {})
+        priorityList[convertStringToHash(paths.join('/'))] = paths.join('/')
+        allPaths[path[key].metadata.priority] = priorityList
+      }
+      if (typeof path[key] !== 'string') {
+        areaPriorityList(path[key], allPaths, paths)
+      }
+    } else {
+      const priorityList = get(allPaths, path[key].priority, {})
+      priorityList[convertStringToHash(paths.join('/'))] = paths.join('/')
+      allPaths[path[key].priority] = priorityList
+    }
+  })
+  return allPaths
+}
+
 const pathYamlContent = async (pathContract, yamlOfEconomicHierarchy, version, nation = 'USA') => {
   const pathDir = `${pathYamlDir}/${nation}-hierarchy-v${version}.yaml`
   if (!fs.existsSync(pathDir)) {
@@ -159,7 +200,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
           }
         }
         const newPath = path ? `${path}/${enode}` : enode
-        if (['display_name', 'leaf', 'umbrella', 'parent', 'metadata'].includes(enode)) {
+        if (['display_name', 'leaf', 'umbrella', 'parent', 'metadata', 'priority'].includes(enode)) {
           // eslint-disable-next-line no-continue
           continue
         }
@@ -199,6 +240,7 @@ const allNations = async () => {
         hierarchy: yamlContent,
         version: path.version,
         pathCrumbs: makePathCrumbs(yamlContent),
+        priorityList: areaPriorityList(yamlContent),
       }
     })
   )
@@ -284,6 +326,14 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
   }
 }
 
+/*
+ * Read the file hierarchy_area_votes.json and return the data
+ */
+const getHierarchyAreaVotes = async () => {
+  const { hierarchyAreaVotes } = await voteDataRollupsFile()
+  return hierarchyAreaVotes
+}
+
 module.exports = {
   getHierarchyContractVersion,
   listHierarchyAreas,
@@ -292,4 +342,5 @@ module.exports = {
   getPathDetail,
   pathsByNation,
   getUmbrellaPaths,
+  getHierarchyAreaVotes,
 }

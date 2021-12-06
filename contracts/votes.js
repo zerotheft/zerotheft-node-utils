@@ -11,6 +11,7 @@ const {
   proposalVotesFile,
   proposalArchiveVotesFile,
   proposalVotersFile,
+  hierarchyAreaVotesFile,
   writeFile,
   voteDataRollupsFile,
 } = require('../utils/common')
@@ -57,7 +58,13 @@ const updateVoteDataRollups = async (rollups, voteData, proposalInfo, voterC) =>
     const _pArchiveVotes = get(rollups.proposalArchiveVotes, _priorPropID, [])
     _pArchiveVotes.push(_priorVoteData.vote_id)
     rollups.proposalArchiveVotes[_priorPropID] = uniq(_pArchiveVotes)
+  } else {
+    // if it is a new vote
+    // Read the hierarchy area votes file
+    const _areaVoteCount = get(rollups.hierarchyAreaVotes, voteData.votedPath, 0)
+    rollups.hierarchyAreaVotes[voteData.votedPath] = _areaVoteCount + 1
   }
+
   const _pvotes = get(rollups.proposalVotes, voteData.proposalID, [])
   _pvotes.push(voteData.voteID)
   rollups.proposalVotes[voteData.proposalID] = uniq(_pvotes)
@@ -72,11 +79,21 @@ const saveVoteRollupsData = async voteData => {
   if (!fs.existsSync(exportsDirNation)) {
     fs.mkdirSync(exportsDirNation, { recursive: true })
   }
-  console.log('save', voteData)
-  if (voteData.citizenSpecificVotes) await writeFile(citizenSpecificVotesFile, voteData.citizenSpecificVotes)
-  if (voteData.proposalVotes) await writeFile(proposalVotesFile, voteData.proposalVotes)
-  if (voteData.proposalVoters) await writeFile(proposalVotersFile, voteData.proposalVoters)
-  if (voteData.proposalArchiveVotes) await writeFile(proposalArchiveVotesFile, voteData.proposalArchiveVotes)
+  if (voteData.citizenSpecificVotes) {
+    await writeFile(citizenSpecificVotesFile, voteData.citizenSpecificVotes)
+  }
+  if (voteData.proposalVotes) {
+    await writeFile(proposalVotesFile, voteData.proposalVotes)
+  }
+  if (voteData.proposalVoters) {
+    await writeFile(proposalVotersFile, voteData.proposalVoters)
+  }
+  if (voteData.proposalArchiveVotes) {
+    await writeFile(proposalArchiveVotesFile, voteData.proposalArchiveVotes)
+  }
+  if (voteData.hierarchyAreaVotes) {
+    await writeFile(hierarchyAreaVotesFile, voteData.hierarchyAreaVotes)
+  }
 }
 /*
  * Get citizen earlier vote to the proposal
@@ -119,13 +136,10 @@ const voteDataRollups = async body => {
     const { voteIndex } = body
     if (!voteIndex) throw new Error('vote voteIndex not present')
     const voteID = `${contractIdentifier}:${voteRes.version}:${voteIndex}`
-    const {
-      voter,
-      voteIsTheft,
-      yesTheftProposal,
-      noTheftProposal,
-      date,
-    } = await voterC.callSmartContractGetFunc('getVote', [voteID])
+    const { voter, voteIsTheft, yesTheftProposal, noTheftProposal, date } = await voterC.callSmartContractGetFunc(
+      'getVote',
+      [voteID]
+    )
     const proposalID = voteIsTheft === 'True' ? yesTheftProposal : noTheftProposal
     const proposalInfo = await proposalC.callSmartContractGetFunc('getProposal', [proposalID])
 
