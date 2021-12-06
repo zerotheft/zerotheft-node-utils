@@ -140,21 +140,25 @@ const voteDataRollups = async body => {
       'getVote',
       [voteID]
     )
+    const { hierarchyPath: votedPath } = await voterC.callSmartContractGetFunc(
+      'getVoteExtra',
+      [voteID]
+    )
     const proposalID = voteIsTheft === 'True' ? yesTheftProposal : noTheftProposal
     const proposalInfo = await proposalC.callSmartContractGetFunc('getProposal', [proposalID])
 
-    const { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes } = await voteDataRollupsFile()
+    const { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes, hierarchyAreaVotes } = await voteDataRollupsFile()
 
     // keep the roll ups record in file
     await updateVoteDataRollups(
-      { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes },
-      { voter, voteID, proposalID, castedOn: date },
+      { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes, hierarchyAreaVotes },
+      { voter, votedPath, voteID, proposalID, castedOn: date },
       proposalInfo,
       voterC
     )
 
     // save all the rollups
-    await saveVoteRollupsData({ citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes })
+    await saveVoteRollupsData({ citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes, hierarchyAreaVotes })
 
     return { success: true, message: 'vote data rollups complete' }
   } catch (e) {
