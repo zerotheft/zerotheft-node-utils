@@ -326,6 +326,7 @@ const getPathDetail = async (path, proposalContract = null, voterContract = null
   }
 }
 
+
 /*
  * Read the file hierarchy_area_votes.json and return the data
  */
