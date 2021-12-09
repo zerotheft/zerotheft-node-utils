@@ -421,7 +421,28 @@ const getCachedProposalsByPathsDir = path => {
     return { data: {}, file: cachedProposalsByPaths }
   }
 }
-
+/**
+ * Get the proposal ids authored in a specific path
+ * @param {string} pathHash - Hash of the path
+ * @param {object} proposalContract - Instance of the proposal contract
+ * @return {Array} List of proposal ids authored in a specific path
+ */
+const proposalIdsByPath = async (pathHash, proposalContract = null) => {
+  let allPropIds = []
+  if (!proposalContract) {
+    proposalContract = getProposalContract()
+  }
+  const verRes = await getProposalContractVersion(proposalContract)
+  while (verRes.number > 0) {
+    const { propIds } = await proposalContract.callSmartContractGetFunc('allProposalsByPath', [
+      pathHash,
+      verRes.number,
+    ])
+    allPropIds = allPropIds.concat(propIds)
+    verRes.number--
+  }
+  return allPropIds
+}
 /**
  * Returns proposal details by path. Eventhough this method tries to fetch the proposals based on path
  * @param {string} path - Economic Hierarchy Path whose proposals are needed
@@ -597,6 +618,7 @@ const getProposalYaml = async (proposalId, path, contract) => {
 
 module.exports = {
   contractIdentifier,
+  proposalIdsByPath,
   getProposals,
   yamlStolenYears,
   getProposalIDByIndex,

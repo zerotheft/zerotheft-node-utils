@@ -6,6 +6,7 @@ const citizenSpecificVotesFile = `${exportsDirNation}/citizen_specific_votes.jso
 const proposalVotesFile = `${exportsDirNation}/proposal_votes.json`
 const proposalVotersFile = `${exportsDirNation}/proposal_voters.json`
 const proposalArchiveVotesFile = `${exportsDirNation}/proposal_archive_votes.json`
+const hierarchyAreaVotesFile = `${exportsDirNation}/hierarchy_area_votes.json`
 
 const writeFile = async (filePath, input) => {
   const jsonString = JSON.stringify(input)
@@ -30,8 +31,11 @@ const voteDataRollupsFile = async () => {
   const proposalArchiveVotes = fs.existsSync(proposalArchiveVotesFile)
     ? JSON.parse(fs.readFileSync(proposalArchiveVotesFile, 'utf-8'))
     : {}
+  const hierarchyAreaVotes = fs.existsSync(hierarchyAreaVotesFile)
+    ? JSON.parse(fs.readFileSync(hierarchyAreaVotesFile, 'utf-8'))
+    : {}
 
-  return { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes }
+  return { citizenSpecificVotes, proposalVotes, proposalVoters, proposalArchiveVotes, hierarchyAreaVotes }
 }
 module.exports = {
   exportsDirNation,
@@ -39,6 +43,7 @@ module.exports = {
   proposalVotesFile,
   proposalVotersFile,
   proposalArchiveVotesFile,
+  hierarchyAreaVotesFile,
   writeFile,
   voteDataRollupsFile,
 }
