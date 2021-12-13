@@ -57,6 +57,8 @@ const votesRank = [
     maxVote: 9999,
   },
 ]
+
+const ExcludedKeys = ['display_name', 'leaf', 'umbrella', 'parent', 'metadata', 'priority']
 /**
  * Get the version of holon contract version
  * @param {object} hierarchyContract Instance of holon contract
@@ -233,7 +235,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
           }
         }
         const newPath = path ? `${path}/${enode}` : enode
-        if (['display_name', 'leaf', 'umbrella', 'parent', 'metadata', 'priority'].includes(enode)) {
+        if (ExcludedKeys.includes(enode)) {
           // eslint-disable-next-line no-continue
           continue
         }
@@ -428,7 +430,7 @@ const nextVotingArea = async () => {
   return { nextAreas: orderBy(allAreas, ['score', 'priority', 'votes'], ['desc', 'asc', 'asc']), winningScore, scores, nextVotein }
 }
 module.exports = {
-
+  ExcludedKeys,
   getHierarchyContractVersion,
   listHierarchyAreas,
   pathYamlContent,
