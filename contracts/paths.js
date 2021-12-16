@@ -58,7 +58,7 @@ const votesRank = [
   },
 ]
 
-const ExcludedKeys = ['display_name', 'leaf', 'umbrella', 'parent', 'metadata', 'priority']
+const ExcludedKeys = ['Alias', 'display_name', 'leaf', 'umbrella', 'parent', 'metadata', 'priority', 'unlock_votes']
 /**
  * Get the version of holon contract version
  * @param {object} hierarchyContract Instance of holon contract
@@ -128,7 +128,7 @@ const fetchPathYaml = async (contract, yamlBlockHash, index, allOutputs = []) =>
 const makePathCrumbs = (path, allPaths = {}, paths = []) => {
   // eslint-disable-next-line array-callback-return
   Object.keys(path).map(key => {
-    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version', 'priority'].includes(key)) return
+    if (ExcludedKeys.includes(key)) return
     Object.keys(path).forEach(item => {
       if (paths.indexOf(item) > 0) {
         paths.length = paths.indexOf(item)
@@ -161,7 +161,7 @@ const makePathCrumbs = (path, allPaths = {}, paths = []) => {
 const areaPriorityList = (path, allPaths = {}, paths = []) => {
   // eslint-disable-next-line array-callback-return
   Object.keys(path).map(key => {
-    if (['Alias', 'umbrella', 'leaf', 'parent', 'display_name', 'Version', 'priority'].includes(key)) return
+    if (ExcludedKeys.includes(key)) return
     Object.keys(path).forEach(item => {
       if (paths.indexOf(item) > 0) {
         paths.length = paths.indexOf(item)
