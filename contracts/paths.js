@@ -232,6 +232,7 @@ const getUmbrellaPaths = async (nation = 'USA') => {
         if (enode === 'metadata' && pathNode[enode].umbrella) {
           umbrellas[path.toString()] = {
             value_parent: pathNode[enode].value_parent,
+            unlock_votes: pathNode[enode].unlock_votes
           }
         }
         const newPath = path ? `${path}/${enode}` : enode
